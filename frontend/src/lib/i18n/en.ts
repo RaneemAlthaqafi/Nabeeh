@@ -18,17 +18,18 @@ export const en = {
 
   // KPI Labels with clear descriptions
   totalRiskScore: "Risk Index",
-  totalRiskScoreDesc: `Risk level classification:
+  totalRiskScoreDesc: `Average risk percentage across all affected ports.
+
+Risk classification:
 🟢 0-20% = Low (safe)
 🟡 20-50% = Medium (needs monitoring)
 🔴 50-100% = High (requires action)
 
 How is it calculated?
-Total points ÷ 50 × 100 = Percentage
+(Total points ÷ Number of ports) ÷ 50 × 100
 
-Reference: 50 points = 100%
-25 points = 50% (High risk starts)
-10 points = 20% (Medium risk starts)`,
+Example: 120 points ÷ 8 ports = 15 pts/port
+15 ÷ 50 × 100 = 30%`,
   
   totalIncidents: "Recorded Violations",
   totalIncidentsDesc: "Total number of violations detected and recorded during the selected period. Includes all violation types and severity levels.",

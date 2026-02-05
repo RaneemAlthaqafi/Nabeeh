@@ -31,12 +31,18 @@ const VIOLATION_TYPES: ViolationType[] = [
   "smoking", "shouting", "abusive_language"
 ];
 
-// Convert risk score to percentage
-// Reference: 50 points = 100% (very high risk)
-// This aligns with thresholds: HIGH >= 25 (50%), MEDIUM >= 10 (20%), LOW < 10
-function riskToPercent(score: number): number {
-  const MAX_REFERENCE = 50; // 50 points = 100%
-  return Math.min(Math.round((score / MAX_REFERENCE) * 100), 100);
+// Convert risk score to percentage for INDIVIDUAL port
+// Reference: 50 points = 100% (very high risk for single port)
+const PORT_MAX_REFERENCE = 50;
+
+// Convert NATIONWIDE total score to percentage
+// We calculate: total_score / (number_of_affected_ports * PORT_MAX_REFERENCE)
+// This gives us the "average" risk across all ports
+function nationwideRiskToPercent(totalScore: number, portsAffected: number): number {
+  if (portsAffected === 0) return 0;
+  // Average score per port, then convert to percentage
+  const avgScorePerPort = totalScore / portsAffected;
+  return Math.min(Math.round((avgScorePerPort / PORT_MAX_REFERENCE) * 100), 100);
 }
 
 export default function HeatmapPage() {
@@ -99,7 +105,7 @@ export default function HeatmapPage() {
               onClick={() => setActiveKpi(activeKpi === "risk" ? null : "risk")}
             >
               <span className="kpi-value">
-                {summary ? `${riskToPercent(summary.total_risk_score)}%` : "—"}
+                {summary ? `${nationwideRiskToPercent(summary.total_risk_score, summary.total_ports_affected)}%` : "—"}
               </span>
               <span className="kpi-label">{t("totalRiskScore")}</span>
               <span className="kpi-help">؟</span>
