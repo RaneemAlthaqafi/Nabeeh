@@ -31,23 +31,63 @@ VIOLATION_TYPES_VIDEO = ["violence", "camera_blocking", "camera_misuse", "camera
 VIOLATION_TYPES_AUDIO = ["shouting", "abusive_language"]
 ALL_TYPES = VIOLATION_TYPES_VIDEO + VIOLATION_TYPES_AUDIO
 
-# Port risk profiles (realistic distribution)
-# HIGH_TRAFFIC: More inspectors, more incidents
-# MEDIUM_TRAFFIC: Moderate activity
-# LOW_TRAFFIC: Few inspectors, rare incidents
+# Port risk profiles with distinct risk levels
+# risk_bias: HIGH = more severe violations, MEDIUM = mixed, LOW = mostly minor
 PORT_PROFILES = {
-    "port_01": {"traffic": "HIGH", "inspectors": (12, 18), "weekly_incidents": (8, 15)},    # جسر الملك فهد - busiest
-    "port_02": {"traffic": "HIGH", "inspectors": (10, 15), "weekly_incidents": (6, 12)},    # البطحاء
-    "port_06": {"traffic": "HIGH", "inspectors": (10, 14), "weekly_incidents": (5, 10)},    # سلوى
-    "port_04": {"traffic": "MEDIUM", "inspectors": (6, 10), "weekly_incidents": (3, 7)},    # الخفجي
-    "port_03": {"traffic": "MEDIUM", "inspectors": (6, 10), "weekly_incidents": (2, 6)},    # الحديثة
-    "port_08": {"traffic": "MEDIUM", "inspectors": (5, 9), "weekly_incidents": (2, 5)},     # حالة عمار
-    "port_05": {"traffic": "LOW", "inspectors": (4, 7), "weekly_incidents": (1, 3)},        # الرقعي
-    "port_07": {"traffic": "LOW", "inspectors": (4, 7), "weekly_incidents": (1, 3)},        # الوديعة
-    "port_10": {"traffic": "LOW", "inspectors": (3, 6), "weekly_incidents": (0, 2)},        # الطوال
-    "port_11": {"traffic": "LOW", "inspectors": (3, 6), "weekly_incidents": (0, 2)},        # علب
-    "port_09": {"traffic": "LOW", "inspectors": (2, 4), "weekly_incidents": (0, 1)},        # الربع الخالي
-    "port_12": {"traffic": "LOW", "inspectors": (3, 5), "weekly_incidents": (0, 2)},        # الخضراء
+    # HIGH RISK PORTS - more incidents, more severe violations
+    "port_01": {"traffic": "HIGH", "inspectors": (12, 18), "weekly_incidents": (12, 20), "risk_bias": "HIGH"},     # جسر الملك فهد - busiest, highest risk
+    "port_02": {"traffic": "HIGH", "inspectors": (10, 15), "weekly_incidents": (10, 16), "risk_bias": "HIGH"},     # البطحاء - high risk
+    
+    # MEDIUM-HIGH RISK PORTS
+    "port_06": {"traffic": "HIGH", "inspectors": (10, 14), "weekly_incidents": (7, 12), "risk_bias": "MEDIUM_HIGH"},  # سلوى
+    "port_04": {"traffic": "MEDIUM", "inspectors": (6, 10), "weekly_incidents": (5, 9), "risk_bias": "MEDIUM_HIGH"},  # الخفجي
+    
+    # MEDIUM RISK PORTS
+    "port_03": {"traffic": "MEDIUM", "inspectors": (6, 10), "weekly_incidents": (3, 6), "risk_bias": "MEDIUM"},    # الحديثة
+    "port_08": {"traffic": "MEDIUM", "inspectors": (5, 9), "weekly_incidents": (3, 5), "risk_bias": "MEDIUM"},     # حالة عمار
+    
+    # LOW-MEDIUM RISK PORTS
+    "port_05": {"traffic": "LOW", "inspectors": (4, 7), "weekly_incidents": (2, 4), "risk_bias": "LOW_MEDIUM"},    # الرقعي
+    "port_07": {"traffic": "LOW", "inspectors": (4, 7), "weekly_incidents": (1, 3), "risk_bias": "LOW_MEDIUM"},    # الوديعة
+    
+    # LOW RISK PORTS - few incidents, mostly minor
+    "port_10": {"traffic": "LOW", "inspectors": (3, 6), "weekly_incidents": (0, 2), "risk_bias": "LOW"},           # الطوال
+    "port_11": {"traffic": "LOW", "inspectors": (3, 6), "weekly_incidents": (0, 2), "risk_bias": "LOW"},           # علب
+    "port_09": {"traffic": "LOW", "inspectors": (2, 4), "weekly_incidents": (0, 1), "risk_bias": "LOW"},           # الربع الخالي
+    "port_12": {"traffic": "LOW", "inspectors": (3, 5), "weekly_incidents": (0, 1), "risk_bias": "LOW"},           # الخضراء
+}
+
+# Severity weights based on risk bias
+SEVERITY_WEIGHTS = {
+    "HIGH": [0.20, 0.45, 0.35],         # 20% LOW, 45% MEDIUM, 35% HIGH
+    "MEDIUM_HIGH": [0.35, 0.40, 0.25],  # 35% LOW, 40% MEDIUM, 25% HIGH
+    "MEDIUM": [0.50, 0.35, 0.15],       # 50% LOW, 35% MEDIUM, 15% HIGH
+    "LOW_MEDIUM": [0.60, 0.30, 0.10],   # 60% LOW, 30% MEDIUM, 10% HIGH
+    "LOW": [0.75, 0.20, 0.05],          # 75% LOW, 20% MEDIUM, 5% HIGH
+}
+
+# Violation weights based on risk bias (more severe violations for high risk)
+VIOLATION_WEIGHTS_BY_BIAS = {
+    "HIGH": {
+        "violence": 12, "abusive_language": 15, "camera_blocking": 18,
+        "camera_misuse": 15, "smoking": 20, "camera_shake": 12, "shouting": 18,
+    },
+    "MEDIUM_HIGH": {
+        "violence": 8, "abusive_language": 12, "camera_blocking": 16,
+        "camera_misuse": 14, "smoking": 22, "camera_shake": 15, "shouting": 15,
+    },
+    "MEDIUM": {
+        "violence": 5, "abusive_language": 8, "camera_blocking": 15,
+        "camera_misuse": 12, "smoking": 25, "camera_shake": 20, "shouting": 15,
+    },
+    "LOW_MEDIUM": {
+        "violence": 3, "abusive_language": 5, "camera_blocking": 12,
+        "camera_misuse": 10, "smoking": 30, "camera_shake": 25, "shouting": 15,
+    },
+    "LOW": {
+        "violence": 1, "abusive_language": 3, "camera_blocking": 10,
+        "camera_misuse": 8, "smoking": 35, "camera_shake": 30, "shouting": 13,
+    },
 }
 
 
@@ -134,24 +174,17 @@ def generate_events(
             if not port_inspectors or daily_incidents == 0:
                 continue
             
+            # Get risk bias for this port
+            risk_bias = profile.get("risk_bias", "MEDIUM")
+            violation_weights = VIOLATION_WEIGHTS_BY_BIAS.get(risk_bias, VIOLATION_WEIGHTS_BY_BIAS["MEDIUM"])
+            severity_weights = SEVERITY_WEIGHTS.get(risk_bias, SEVERITY_WEIGHTS["MEDIUM"])
+            
             for _ in range(daily_incidents):
                 event_id += 1
                 inspector = random.choice(port_inspectors)
                 ts = _random_ts_in_day(current_date)
                 
-                # Violation type distribution (realistic)
-                # Most common: smoking, camera issues
-                # Less common: shouting
-                # Rare: violence, abusive language
-                violation_weights = {
-                    "smoking": 25,
-                    "camera_shake": 20,
-                    "camera_blocking": 15,
-                    "camera_misuse": 12,
-                    "shouting": 15,
-                    "abusive_language": 8,
-                    "violence": 5,
-                }
+                # Violation type based on port's risk bias
                 vtype = random.choices(
                     list(violation_weights.keys()),
                     weights=list(violation_weights.values()),
@@ -160,14 +193,17 @@ def generate_events(
                 # Source based on type
                 source = EventSource.AUDIO if vtype in VIOLATION_TYPES_AUDIO else EventSource.VIDEO
                 
-                # Severity distribution (realistic)
-                # Most violations are LOW or MEDIUM
+                # Severity based on port's risk bias
                 severity = random.choices(
                     [Severity.LOW, Severity.MEDIUM, Severity.HIGH],
-                    weights=[0.55, 0.35, 0.10],  # 55% low, 35% medium, 10% high
+                    weights=severity_weights,
                 )[0]
                 
-                confidence = round(random.uniform(0.70, 0.98), 2)
+                # Confidence also varies by risk bias (higher risk = higher confidence detections)
+                if risk_bias in ["HIGH", "MEDIUM_HIGH"]:
+                    confidence = round(random.uniform(0.80, 0.98), 2)
+                else:
+                    confidence = round(random.uniform(0.70, 0.95), 2)
                 
                 events.append(
                     Event(
