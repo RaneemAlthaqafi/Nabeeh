@@ -1,5 +1,5 @@
 """
-Seed ports, inspectors, and generate demo events over 30 days.
+Seed ports, inspectors, and generate realistic demo events over 30 days.
 Coordinates are approximate for dashboard visualization only.
 """
 import random
@@ -31,9 +31,24 @@ VIOLATION_TYPES_VIDEO = ["violence", "camera_blocking", "camera_misuse", "camera
 VIOLATION_TYPES_AUDIO = ["shouting", "abusive_language"]
 ALL_TYPES = VIOLATION_TYPES_VIDEO + VIOLATION_TYPES_AUDIO
 
-# Bias some ports to be higher risk in recent 24h for demo
-HIGH_RISK_PORTS_24H = {"port_01", "port_04"}
-MEDIUM_RISK_PORTS_24H = {"port_02", "port_06", "port_08"}
+# Port risk profiles (realistic distribution)
+# HIGH_TRAFFIC: More inspectors, more incidents
+# MEDIUM_TRAFFIC: Moderate activity
+# LOW_TRAFFIC: Few inspectors, rare incidents
+PORT_PROFILES = {
+    "port_01": {"traffic": "HIGH", "inspectors": (12, 18), "weekly_incidents": (8, 15)},    # جسر الملك فهد - busiest
+    "port_02": {"traffic": "HIGH", "inspectors": (10, 15), "weekly_incidents": (6, 12)},    # البطحاء
+    "port_06": {"traffic": "HIGH", "inspectors": (10, 14), "weekly_incidents": (5, 10)},    # سلوى
+    "port_04": {"traffic": "MEDIUM", "inspectors": (6, 10), "weekly_incidents": (3, 7)},    # الخفجي
+    "port_03": {"traffic": "MEDIUM", "inspectors": (6, 10), "weekly_incidents": (2, 6)},    # الحديثة
+    "port_08": {"traffic": "MEDIUM", "inspectors": (5, 9), "weekly_incidents": (2, 5)},     # حالة عمار
+    "port_05": {"traffic": "LOW", "inspectors": (4, 7), "weekly_incidents": (1, 3)},        # الرقعي
+    "port_07": {"traffic": "LOW", "inspectors": (4, 7), "weekly_incidents": (1, 3)},        # الوديعة
+    "port_10": {"traffic": "LOW", "inspectors": (3, 6), "weekly_incidents": (0, 2)},        # الطوال
+    "port_11": {"traffic": "LOW", "inspectors": (3, 6), "weekly_incidents": (0, 2)},        # علب
+    "port_09": {"traffic": "LOW", "inspectors": (2, 4), "weekly_incidents": (0, 1)},        # الربع الخالي
+    "port_12": {"traffic": "LOW", "inspectors": (3, 5), "weekly_incidents": (0, 2)},        # الخضراء
+}
 
 
 def _generate_inspector_id() -> str:
@@ -42,25 +57,29 @@ def _generate_inspector_id() -> str:
     return f"INS-{chars}"
 
 
-def _random_ts(from_ts: datetime, to_ts: datetime) -> datetime:
-    delta = to_ts - from_ts
-    sec = random.randint(0, int(delta.total_seconds()))
-    return from_ts + timedelta(seconds=sec)
+def _random_ts_in_day(base_date: datetime) -> datetime:
+    """Generate a random time during working hours (7am - 10pm)."""
+    hour = random.randint(7, 22)
+    minute = random.randint(0, 59)
+    return base_date.replace(hour=hour, minute=minute, second=random.randint(0, 59))
 
 
 def generate_inspectors(ports: List[Port], seed_value: int = 42) -> List[Inspector]:
-    """Generate ~8-15 inspectors per port."""
+    """Generate inspectors based on port traffic profile."""
     random.seed(seed_value)
     inspectors: List[Inspector] = []
     now = datetime.now(timezone.utc)
     
     for port in ports:
-        num_inspectors = random.randint(8, 15)
+        profile = PORT_PROFILES.get(port.id, {"inspectors": (4, 8)})
+        min_insp, max_insp = profile["inspectors"]
+        num_inspectors = random.randint(min_insp, max_insp)
+        
         for _ in range(num_inspectors):
             inspector = Inspector(
                 id=_generate_inspector_id(),
                 port_id=port.id,
-                created_at=now - timedelta(days=random.randint(30, 365)),
+                created_at=now - timedelta(days=random.randint(60, 365)),
             )
             inspectors.append(inspector)
     
@@ -74,13 +93,13 @@ def generate_events(
     seed_value: int = 42,
 ) -> List[Event]:
     """
-    Generate demo events over the last N days.
-    Each event is tied to an inspector at that port.
-    Some ports are HIGH/MEDIUM risk in last 24h for demo purposes.
+    Generate realistic events distributed across weeks.
+    - More incidents on busy days (Sunday-Thursday in Saudi)
+    - Fewer on weekends (Friday-Saturday)
+    - Realistic violation type distribution
     """
-    random.seed(seed_value + 1)  # Different seed for events
+    random.seed(seed_value + 1)
     now = datetime.now(timezone.utc)
-    start = now - timedelta(days=days_back)
     events: List[Event] = []
     event_id = 0
 
@@ -89,57 +108,80 @@ def generate_events(
     for inspector in inspectors:
         inspectors_by_port.setdefault(inspector.port_id, []).append(inspector)
 
-    for _ in range(2500):  # More events for richer data
-        event_id += 1
-        port = random.choice(ports)
-        ts = _random_ts(start, now)
+    # Generate events day by day for realism
+    for day_offset in range(days_back):
+        current_date = now - timedelta(days=day_offset)
+        day_of_week = current_date.weekday()  # 0=Monday, 4=Friday, 5=Saturday, 6=Sunday
         
-        # Get random inspector from this port
-        port_inspectors = inspectors_by_port.get(port.id, [])
-        if not port_inspectors:
-            continue
-        inspector = random.choice(port_inspectors)
-
-        is_video = random.random() > 0.35
-        if is_video:
-            vtype = random.choice(VIOLATION_TYPES_VIDEO)
-            source = EventSource.VIDEO
-        else:
-            vtype = random.choice(VIOLATION_TYPES_AUDIO)
-            source = EventSource.AUDIO
-
-        # Last 24h: boost count for HIGH/MEDIUM demo ports
-        last_24h = now - timedelta(hours=24)
-        if ts >= last_24h:
-            if port.id in HIGH_RISK_PORTS_24H and random.random() < 0.7:
-                pass  # keep event
-            elif port.id in MEDIUM_RISK_PORTS_24H and random.random() < 0.5:
-                pass
-            elif port.id not in HIGH_RISK_PORTS_24H and port.id not in MEDIUM_RISK_PORTS_24H and random.random() < 0.15:
-                pass  # fewer events for others in 24h
+        # Saudi work week: Sunday(6) to Thursday(3)
+        # Friday(4) and Saturday(5) are weekend
+        is_weekend = day_of_week in [4, 5]
+        
+        for port in ports:
+            profile = PORT_PROFILES.get(port.id, {"weekly_incidents": (1, 3)})
+            min_weekly, max_weekly = profile["weekly_incidents"]
+            
+            # Calculate daily incidents (weekly / 7, adjusted for weekday/weekend)
+            if is_weekend:
+                # 70% fewer incidents on weekends
+                daily_incidents = random.randint(0, max(1, max_weekly // 10))
             else:
-                if port.id not in HIGH_RISK_PORTS_24H and port.id not in MEDIUM_RISK_PORTS_24H:
-                    continue
-
-        severity = random.choices(
-            [Severity.LOW, Severity.MEDIUM, Severity.HIGH],
-            weights=[0.5, 0.35, 0.15],
-        )[0]
-        confidence = round(random.uniform(0.6, 1.0), 2)
-
-        events.append(
-            Event(
-                id=f"evt_{event_id}",
-                port_id=port.id,
-                inspector_id=inspector.id,
-                timestamp=ts,
-                source=source,
-                type=vtype,
-                severity=severity,
-                confidence=confidence,
-                short_description=None,
-            )
-        )
+                # Normal distribution across 5 working days
+                daily_incidents = random.randint(0, max(1, (max_weekly * 2) // 7))
+            
+            # Get inspectors for this port
+            port_inspectors = inspectors_by_port.get(port.id, [])
+            if not port_inspectors or daily_incidents == 0:
+                continue
+            
+            for _ in range(daily_incidents):
+                event_id += 1
+                inspector = random.choice(port_inspectors)
+                ts = _random_ts_in_day(current_date)
+                
+                # Violation type distribution (realistic)
+                # Most common: smoking, camera issues
+                # Less common: shouting
+                # Rare: violence, abusive language
+                violation_weights = {
+                    "smoking": 25,
+                    "camera_shake": 20,
+                    "camera_blocking": 15,
+                    "camera_misuse": 12,
+                    "shouting": 15,
+                    "abusive_language": 8,
+                    "violence": 5,
+                }
+                vtype = random.choices(
+                    list(violation_weights.keys()),
+                    weights=list(violation_weights.values()),
+                )[0]
+                
+                # Source based on type
+                source = EventSource.AUDIO if vtype in VIOLATION_TYPES_AUDIO else EventSource.VIDEO
+                
+                # Severity distribution (realistic)
+                # Most violations are LOW or MEDIUM
+                severity = random.choices(
+                    [Severity.LOW, Severity.MEDIUM, Severity.HIGH],
+                    weights=[0.55, 0.35, 0.10],  # 55% low, 35% medium, 10% high
+                )[0]
+                
+                confidence = round(random.uniform(0.70, 0.98), 2)
+                
+                events.append(
+                    Event(
+                        id=f"evt_{event_id}",
+                        port_id=port.id,
+                        inspector_id=inspector.id,
+                        timestamp=ts,
+                        source=source,
+                        type=vtype,
+                        severity=severity,
+                        confidence=confidence,
+                        short_description=None,
+                    )
+                )
 
     return events
 

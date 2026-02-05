@@ -15,14 +15,13 @@ import type { FilterParams } from "@/lib/api/client";
 
 const MAP_CENTER: [number, number] = [24.5, 46.5];
 
-type RangeKey = "24h" | "7d" | "30d";
+type RangeKey = "7d" | "30d";
 type ViolationType = "violence" | "camera_blocking" | "camera_misuse" | "camera_shake" | "smoking" | "shouting" | "abusive_language";
 
 function toISORange(range: RangeKey): { from: string; to: string } {
   const to = new Date();
   const from = new Date();
-  if (range === "24h") from.setHours(from.getHours() - 24);
-  else if (range === "7d") from.setDate(from.getDate() - 7);
+  if (range === "7d") from.setDate(from.getDate() - 7);
   else from.setDate(from.getDate() - 30);
   return { from: from.toISOString(), to: to.toISOString() };
 }
@@ -42,7 +41,7 @@ export default function HeatmapPage() {
   const { t } = useI18n();
   
   // Filter state
-  const [timeRange, setTimeRange] = useState<RangeKey>("24h");
+  const [timeRange, setTimeRange] = useState<RangeKey>("7d");
   const [violationType, setViolationType] = useState<ViolationType | null>(null);
   const [selectedPortId, setSelectedPortId] = useState<string | null>(null);
   const [activeKpi, setActiveKpi] = useState<string | null>(null);
@@ -138,7 +137,7 @@ export default function HeatmapPage() {
 
           {/* Time Range Filter */}
           <div className="flex bg-gray-100 rounded-lg p-1">
-            {(["24h", "7d", "30d"] as RangeKey[]).map((key) => (
+            {(["7d", "30d"] as RangeKey[]).map((key) => (
               <button
                 key={key}
                 type="button"
@@ -149,7 +148,7 @@ export default function HeatmapPage() {
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                {key === "24h" ? t("filterLast24h") : key === "7d" ? t("filterLast7d") : t("filterLast30d")}
+                {key === "7d" ? t("filterLast7d") : t("filterLast30d")}
               </button>
             ))}
           </div>

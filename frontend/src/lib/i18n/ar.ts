@@ -14,7 +14,6 @@ export const ar = {
   selectedPort: "المنفذ المختار",
   
   // Time filters
-  filterLast24h: "اليوم",
   filterLast7d: "الأسبوع",
   filterLast30d: "الشهر",
 

@@ -13,7 +13,6 @@ export const en = {
   selectedPort: "Selected Port",
 
   // Time filters
-  filterLast24h: "Today",
   filterLast7d: "This Week",
   filterLast30d: "This Month",
 
