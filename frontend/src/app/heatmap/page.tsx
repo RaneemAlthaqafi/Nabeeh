@@ -85,15 +85,15 @@ export default function HeatmapPage() {
         <div className="flex items-center justify-between gap-6">
           {/* KPI Cards */}
           <div className="flex items-center gap-4">
-            <div className="kpi-card">
+            <div className="kpi-card" title={t("totalRiskScoreDesc")}>
               <span className="kpi-value">{summary?.total_risk_score.toFixed(1) ?? "—"}</span>
               <span className="kpi-label">{t("totalRiskScore")}</span>
             </div>
-            <div className="kpi-card">
+            <div className="kpi-card" title={t("totalInspectorsImpactedDesc")}>
               <span className="kpi-value">{summary?.total_inspectors_impacted ?? "—"}</span>
               <span className="kpi-label">{t("totalInspectorsImpacted")}</span>
             </div>
-            <div className="kpi-card">
+            <div className="kpi-card" title={t("totalIncidentsDesc")}>
               <span className="kpi-value">{summary?.total_incidents ?? "—"}</span>
               <span className="kpi-label">{t("totalIncidents")}</span>
             </div>

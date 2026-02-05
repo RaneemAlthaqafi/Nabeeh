@@ -18,9 +18,12 @@ export const ar = {
   filterLast30d: "آخر ٣٠ يوم",
 
   // KPI Labels (Critical - Proper Semantics)
-  totalRiskScore: "درجة الخطر الإجمالية",
-  totalIncidents: "إجمالي الحوادث",
-  totalInspectorsImpacted: "عدد المفتشين المتأثرين",
+  totalRiskScore: "مؤشر الخطورة",
+  totalRiskScoreDesc: "مجموع نقاط المخالفات حسب وزنها",
+  totalIncidents: "عدد المخالفات",
+  totalIncidentsDesc: "إجمالي الحوادث المسجلة",
+  totalInspectorsImpacted: "المفتشون المخالفون",
+  totalInspectorsImpactedDesc: "عدد المفتشين الفريدين",
   totalPortsAffected: "المنافذ المتأثرة",
   lastIncident: "آخر حادثة",
   incidentCount: "عدد الحوادث",

@@ -18,9 +18,12 @@ export const en = {
   filterLast30d: "Last 30 days",
 
   // KPI Labels (Critical - Proper Semantics)
-  totalRiskScore: "Total Risk Score",
-  totalIncidents: "Total Incidents",
-  totalInspectorsImpacted: "Inspectors Impacted",
+  totalRiskScore: "Risk Index",
+  totalRiskScoreDesc: "Weighted violation score",
+  totalIncidents: "Violations",
+  totalIncidentsDesc: "Total recorded incidents",
+  totalInspectorsImpacted: "Violating Inspectors",
+  totalInspectorsImpactedDesc: "Unique inspectors count",
   totalPortsAffected: "Ports Affected",
   lastIncident: "Last Incident",
   incidentCount: "Incident Count",
