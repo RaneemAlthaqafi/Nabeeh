@@ -49,7 +49,7 @@ export const ar = {
   violence: "الاعتداء الجسدي",
   camera_blocking: "حجب الكاميرا",
   camera_misuse: "العبث بالكاميرا",
-  camera_shake: "عدم ثبات الكاميرا",
+  camera_shake: "ثبات الكاميرا",
   smoking: "التدخين",
   shouting: "رفع الصوت",
   abusive_language: "الإساءة اللفظية",
