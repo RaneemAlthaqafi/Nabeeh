@@ -3,20 +3,19 @@
 import { useMemo, useState, useCallback } from "react";
 import { Header } from "@/features/heatmap/components/Header";
 import { HeatmapMap } from "@/features/heatmap/components/HeatmapMap";
-import { OverlayDashboard } from "@/features/heatmap/components/OverlayDashboard";
-import { FiltersBar, type RangeKey, type ViolationType } from "@/features/heatmap/components/FiltersBar";
-import { PortOverlay } from "@/features/heatmap/components/PortOverlay";
-import { InspectorDrawer } from "@/features/heatmap/components/InspectorDrawer";
+import { PortDetailsPanel } from "@/features/heatmap/components/PortDetailsPanel";
+import { useI18n } from "@/lib/i18n/context";
 import {
   useSummary,
   usePorts,
   usePortDetails,
-  useInspectorDetails,
   useHeatmap,
 } from "@/features/heatmap/api/useHeatmap";
 import type { FilterParams } from "@/lib/api/client";
 
 const MAP_CENTER: [number, number] = [24.5, 46.5];
+
+type RangeKey = "24h" | "7d" | "30d";
 
 function toISORange(range: RangeKey): { from: string; to: string } {
   const to = new Date();
@@ -28,40 +27,26 @@ function toISORange(range: RangeKey): { from: string; to: string } {
 }
 
 export default function HeatmapPage() {
+  const { t } = useI18n();
+  
   // Filter state
   const [timeRange, setTimeRange] = useState<RangeKey>("24h");
-  const [violationType, setViolationType] = useState<ViolationType | null>(null);
-  const [severity, setSeverity] = useState<string | null>(null);
-
-  // Selection state
   const [selectedPortId, setSelectedPortId] = useState<string | null>(null);
-  const [selectedInspectorId, setSelectedInspectorId] = useState<string | null>(null);
-  const [isInspectorDrawerOpen, setInspectorDrawerOpen] = useState(false);
 
   // Build filter params
   const { from, to } = useMemo(() => toISORange(timeRange), [timeRange]);
   const filterParams: FilterParams = useMemo(
-    () => ({
-      from,
-      to,
-      violationType: violationType ?? undefined,
-      severity: severity ?? undefined,
-    }),
-    [from, to, violationType, severity]
+    () => ({ from, to }),
+    [from, to]
   );
 
   // Data fetching
-  const { data: summary, isLoading: summaryLoading } = useSummary(filterParams);
-  const { data: ports = [], isLoading: portsLoading } = usePorts(filterParams);
+  const { data: ports = [] } = usePorts(filterParams);
   const { data: portDetail, isLoading: portDetailLoading } = usePortDetails(
     selectedPortId,
     filterParams
   );
-  const { data: inspectorDetail, isLoading: inspectorLoading } = useInspectorDetails(
-    selectedInspectorId,
-    { ...filterParams, portId: selectedPortId ?? undefined }
-  );
-  const { data: heatmapData, isLoading: heatmapLoading } = useHeatmap(filterParams);
+  const { data: heatmapData } = useHeatmap(filterParams);
 
   // Derived data
   const heatmapPoints = useMemo(
@@ -72,84 +57,63 @@ export default function HeatmapPage() {
   // Handlers
   const handlePortSelect = useCallback((portId: string | null) => {
     setSelectedPortId(portId);
-    setSelectedInspectorId(null);
-    setInspectorDrawerOpen(false);
   }, []);
 
   const handlePortClose = useCallback(() => {
     setSelectedPortId(null);
   }, []);
 
-  const handleInspectorClick = useCallback((inspectorId: string) => {
-    setSelectedInspectorId(inspectorId);
-    setInspectorDrawerOpen(true);
-  }, []);
-
-  const handleInspectorDrawerClose = useCallback(() => {
-    setInspectorDrawerOpen(false);
-    setSelectedInspectorId(null);
-  }, []);
-
   return (
-    <div className="dashboard-root">
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Header */}
       <Header />
 
-      {/* Main Canvas - Map with overlays */}
-      <main className="dashboard-main">
-        {/* Map (full canvas) */}
-        <div className="map-canvas">
+      {/* Filters Bar */}
+      <div className="bg-white border-b border-gray-200 px-6 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            {(["24h", "7d", "30d"] as RangeKey[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTimeRange(key)}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                  timeRange === key
+                    ? "bg-white text-navy shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                {key === "24h" ? t("filterLast24h") : key === "7d" ? t("filterLast7d") : t("filterLast30d")}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Map Area */}
+        <div className="flex-1 relative">
           <HeatmapMap
             points={heatmapPoints}
             center={MAP_CENTER}
             ports={ports}
             selectedPortId={selectedPortId}
             onPortSelect={handlePortSelect}
-            dimUnselected={!!selectedPortId}
           />
         </div>
 
-        {/* Overlay Dashboard (floating above map) */}
-        <div className="overlay-container overlay-top">
-          <OverlayDashboard
-            summary={summary ?? null}
-            portDetail={portDetail ?? null}
-            isLoading={summaryLoading || (!!selectedPortId && portDetailLoading)}
-            selectedPortId={selectedPortId}
-          />
-        </div>
-
-        {/* Filters Bar (floating below dashboard) */}
-        <div className="overlay-container overlay-filters">
-          <FiltersBar
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-            violationType={violationType}
-            onViolationTypeChange={setViolationType}
-            severity={severity}
-            onSeverityChange={setSeverity}
-          />
-        </div>
-
-        {/* Port Detail Overlay (right side when selected) */}
+        {/* Side Panel */}
         {selectedPortId && (
-          <div className="overlay-container overlay-right">
-            <PortOverlay
+          <div className="w-96 bg-white border-s border-gray-200 overflow-y-auto">
+            <PortDetailsPanel
               portDetail={portDetail ?? null}
               isLoading={portDetailLoading}
               onClose={handlePortClose}
-              onInspectorClick={handleInspectorClick}
             />
           </div>
         )}
-
-        {/* Inspector Drawer */}
-        <InspectorDrawer
-          inspector={inspectorDetail ?? null}
-          isLoading={inspectorLoading}
-          isOpen={isInspectorDrawerOpen}
-          onClose={handleInspectorDrawerClose}
-        />
-      </main>
+      </div>
     </div>
   );
 }
