@@ -219,9 +219,9 @@ export function HeatmapMap({
       const isHovered = port.id === hoveredPortId;
       const colors = getRiskColors(port.risk_level, isDark);
       
-      // Dynamic sizing - larger for better visibility
-      const baseSize = 18;
-      const size = isSelected ? 28 : isHovered ? 22 : baseSize;
+      // Dynamic sizing - balanced for clarity without overlap
+      const baseSize = 12;
+      const size = isSelected ? 20 : isHovered ? 16 : baseSize;
       
       // Risk-based animation intensity
       const riskClass = port.risk_level === "HIGH" 
@@ -244,10 +244,10 @@ export function HeatmapMap({
               <div class="beacon-ring slow" style="--ring-color: ${colors.ring}; --delay: 1.5s;"></div>
             ` : ''}
             
-            <!-- Glow layer - enhanced -->
+            <!-- Glow layer -->
             <div class="marker-glow" style="
               --glow-color: ${colors.glow};
-              --glow-size: ${isSelected ? '50px' : isHovered ? '40px' : '32px'};
+              --glow-size: ${isSelected ? '35px' : isHovered ? '28px' : '22px'};
             "></div>
             
             <!-- Core marker -->
@@ -397,8 +397,17 @@ export function HeatmapMap({
         <div className="legend-gradient">
           <div className="gradient-bar"></div>
           <div className="gradient-labels">
-            <span>{lang === "ar" ? "منخفض" : "Low"}</span>
-            <span>{lang === "ar" ? "عالي" : "High"}</span>
+            {lang === "ar" ? (
+              <>
+                <span>عالي</span>
+                <span>منخفض</span>
+              </>
+            ) : (
+              <>
+                <span>Low</span>
+                <span>High</span>
+              </>
+            )}
           </div>
         </div>
       </div>
