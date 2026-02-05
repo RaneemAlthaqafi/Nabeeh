@@ -3,7 +3,7 @@
  */
 export const ar = {
   // App
-  appTitle: "نبيه",
+  appTitle: "نظام تنبيه ورصد لمخاطر الامتثال عبر المنافذ",
   appSubtitle: "خريطة مخاطر المنافذ",
   langAr: "العربية",
   langEn: "English",

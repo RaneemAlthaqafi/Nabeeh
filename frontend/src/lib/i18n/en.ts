@@ -3,7 +3,7 @@
  */
 export const en = {
   // App
-  appTitle: "Nabeeh",
+  appTitle: "Compliance Risk Alert & Monitoring System",
   appSubtitle: "Ports Risk Heatmap",
   langAr: "العربية",
   langEn: "English",
