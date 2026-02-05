@@ -19,18 +19,18 @@ export const en = {
 
   // KPI Labels with clear descriptions
   totalRiskScore: "Risk Index",
-  totalRiskScoreDesc: `How is it calculated? Each violation has points by type:
-• Physical Assault = 5 pts
-• Verbal Abuse = 4 pts
-• Camera Blocking/Tampering = 3 pts
-• Smoking/Shouting/Camera Stability = 2 pts
+  totalRiskScoreDesc: `Risk Levels:
+🔴 High: 25 points or more
+🟠 Medium: 10 to 24.9 points
+🟢 Low: Less than 10 points
 
-Then multiplied by severity:
-• High ×1.0 | Medium ×0.6 | Low ×0.3
+How calculated? Each violation has points:
+• Assault = 5 | Verbal Abuse = 4
+• Camera Blocking/Tampering = 3
+• Smoking/Shouting/Camera = 2
 
-Example: Assault (5) + High severity (×1) = 5 pts
-+ Smoking (2) + Medium severity (×0.6) = 1.2 pts
-= Total: 6.2 points`,
+Multiplied by severity:
+High ×1 | Medium ×0.6 | Low ×0.3`,
   
   totalIncidents: "Recorded Violations",
   totalIncidentsDesc: "Total number of violations detected and recorded during the selected period. Includes all violation types and severity levels.",

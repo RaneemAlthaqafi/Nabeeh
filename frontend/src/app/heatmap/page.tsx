@@ -32,6 +32,21 @@ const VIOLATION_TYPES: ViolationType[] = [
   "smoking", "shouting", "abusive_language"
 ];
 
+// Risk level thresholds (same as backend)
+function getRiskLevel(score: number): "HIGH" | "MEDIUM" | "LOW" {
+  if (score >= 25) return "HIGH";
+  if (score >= 10) return "MEDIUM";
+  return "LOW";
+}
+
+function getRiskColor(level: "HIGH" | "MEDIUM" | "LOW"): string {
+  switch (level) {
+    case "HIGH": return "#C62828";
+    case "MEDIUM": return "#F57C00";
+    case "LOW": return "#00897B";
+  }
+}
+
 export default function HeatmapPage() {
   const { t } = useI18n();
   
@@ -91,7 +106,17 @@ export default function HeatmapPage() {
               className={`kpi-card ${activeKpi === "risk" ? "active" : ""}`}
               onClick={() => setActiveKpi(activeKpi === "risk" ? null : "risk")}
             >
-              <span className="kpi-value">{summary?.total_risk_score.toFixed(1) ?? "—"}</span>
+              <div className="flex items-center gap-2">
+                <span className="kpi-value">{summary?.total_risk_score.toFixed(1) ?? "—"}</span>
+                {summary && (
+                  <span 
+                    className="risk-badge"
+                    style={{ backgroundColor: getRiskColor(getRiskLevel(summary.total_risk_score)) }}
+                  >
+                    {t(getRiskLevel(summary.total_risk_score))}
+                  </span>
+                )}
+              </div>
               <span className="kpi-label">{t("totalRiskScore")}</span>
               <span className="kpi-help">؟</span>
               <div className="kpi-tooltip">{t("totalRiskScoreDesc")}</div>
