@@ -7,6 +7,28 @@ import type { PortSummary } from "@/lib/api/client";
 const SA_CENTER: [number, number] = [24.5, 46.5];
 const SA_ZOOM = 6;
 
+// Simplified Saudi Arabia border coordinates (GeoJSON polygon)
+const SA_BORDER: [number, number][] = [
+  [34.57, 32.15], [34.96, 29.50], [36.07, 29.19], [37.00, 31.51],
+  [37.99, 30.51], [37.67, 30.34], [37.50, 30.00], [38.00, 28.00],
+  [39.20, 27.79], [41.00, 27.00], [42.00, 27.00], [43.12, 27.85],
+  [43.99, 27.00], [46.55, 29.10], [47.43, 28.99], [47.71, 28.53],
+  [48.42, 28.55], [48.81, 27.69], [49.30, 27.46], [49.47, 27.11],
+  [50.15, 26.69], [50.21, 26.28], [50.61, 25.88], [50.80, 24.75],
+  [51.01, 24.29], [51.29, 24.24], [51.58, 24.25], [51.59, 22.93],
+  [52.55, 22.93], [55.10, 22.62], [55.67, 22.00], [55.21, 20.23],
+  [52.78, 19.16], [52.00, 19.00], [49.12, 18.62], [48.18, 18.17],
+  [47.47, 17.12], [46.98, 16.95], [46.75, 17.28], [45.40, 17.33],
+  [45.22, 17.43], [44.06, 17.41], [43.79, 17.32], [43.38, 17.58],
+  [43.12, 17.09], [43.22, 16.67], [42.79, 16.38], [42.65, 16.77],
+  [42.35, 17.08], [42.27, 17.47], [41.75, 17.87], [41.22, 18.67],
+  [40.94, 19.49], [40.25, 20.17], [39.80, 21.00], [39.19, 21.29],
+  [39.02, 22.00], [38.49, 23.69], [37.92, 24.18], [37.54, 24.29],
+  [37.18, 25.08], [36.93, 25.60], [36.64, 25.83], [36.25, 26.57],
+  [35.64, 27.38], [35.18, 28.06], [34.62, 28.06], [34.96, 29.36],
+  [34.57, 32.15]
+];
+
 // Premium map tile providers
 const MAP_STYLES = {
   light: {
@@ -64,6 +86,8 @@ export function HeatmapMap({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tileLayerRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const borderLayerRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const heatLayerRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markersRef = useRef<Map<string, any>>(new Map());
@@ -115,6 +139,19 @@ export function HeatmapMap({
     }).addTo(map);
     tileLayerRef.current = tileLayer;
 
+    // Add Saudi Arabia border
+    const borderCoords = SA_BORDER.map(([lng, lat]) => [lat, lng] as [number, number]);
+    const isDark = mapTheme === "dark";
+    const borderLayer = L.polygon(borderCoords, {
+      color: isDark ? "#4FBBBD" : "#1D3761",
+      weight: 2,
+      opacity: isDark ? 0.6 : 0.5,
+      fillColor: isDark ? "#1D3761" : "#4FBBBD",
+      fillOpacity: isDark ? 0.08 : 0.05,
+      dashArray: "5, 5",
+    }).addTo(map);
+    borderLayerRef.current = borderLayer;
+
     // Add zoom control
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
@@ -138,24 +175,33 @@ export function HeatmapMap({
     };
   }, [isLeafletReady, center]);
 
-  // Update tile layer when theme changes
+  // Update tile layer and border when theme changes
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapRef.current;
     if (!L || !map || !tileLayerRef.current) return;
 
     const style = MAP_STYLES[mapTheme];
+    const isDark = mapTheme === "dark";
     
-    // Remove old layer and add new one
+    // Remove old tile layer and add new one
     map.removeLayer(tileLayerRef.current);
     const newTileLayer = L.tileLayer(style.url, {
       maxZoom: 19,
       attribution: style.attribution,
     }).addTo(map);
     tileLayerRef.current = newTileLayer;
-    
-    // Move tile layer to back
     newTileLayer.bringToBack();
+
+    // Update border style
+    if (borderLayerRef.current) {
+      borderLayerRef.current.setStyle({
+        color: isDark ? "#4FBBBD" : "#1D3761",
+        opacity: isDark ? 0.6 : 0.5,
+        fillColor: isDark ? "#1D3761" : "#4FBBBD",
+        fillOpacity: isDark ? 0.08 : 0.05,
+      });
+    }
   }, [mapTheme, isLeafletReady]);
 
   // Update heat layer
@@ -171,29 +217,30 @@ export function HeatmapMap({
     if (points.length > 0) {
       const isDark = mapTheme === "dark";
       // ZATCA Colors: Teal #4FBBBD → Orange #FABB33 → Warm Red #E84A41
+      // Smaller radius, less blur for tighter regions
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const heat = (L as any).heatLayer(points, {
-        radius: 55,
-        blur: 30,
-        maxZoom: 12,
+        radius: 25,
+        blur: 15,
+        maxZoom: 14,
         max: 1.0,
-        minOpacity: isDark ? 0.6 : 0.5,
+        minOpacity: isDark ? 0.65 : 0.55,
         gradient: isDark ? {
           0.0: "rgba(79, 187, 189, 0.0)",    // Teal transparent
-          0.15: "rgba(79, 187, 189, 0.5)",   // Teal
-          0.35: "rgba(79, 187, 189, 0.7)",   // Teal stronger
-          0.5: "rgba(250, 187, 51, 0.75)",   // Orange
-          0.65: "rgba(250, 187, 51, 0.85)",  // Orange stronger
-          0.8: "rgba(232, 74, 65, 0.9)",     // Warm Red
+          0.2: "rgba(79, 187, 189, 0.6)",    // Teal
+          0.4: "rgba(79, 187, 189, 0.8)",    // Teal stronger
+          0.55: "rgba(250, 187, 51, 0.85)",  // Orange
+          0.7: "rgba(250, 187, 51, 0.9)",    // Orange stronger
+          0.85: "rgba(232, 74, 65, 0.95)",   // Warm Red
           1.0: "rgba(232, 74, 65, 1)",       // Warm Red full
         } : {
           0.0: "rgba(79, 187, 189, 0.0)",    // Teal transparent
-          0.15: "rgba(79, 187, 189, 0.4)",   // Teal
-          0.35: "rgba(79, 187, 189, 0.6)",   // Teal stronger
-          0.5: "rgba(250, 187, 51, 0.65)",   // Orange
-          0.65: "rgba(250, 187, 51, 0.75)",  // Orange stronger
-          0.8: "rgba(232, 74, 65, 0.85)",    // Warm Red
-          1.0: "rgba(232, 74, 65, 0.95)",    // Warm Red full
+          0.2: "rgba(79, 187, 189, 0.5)",    // Teal
+          0.4: "rgba(79, 187, 189, 0.7)",    // Teal stronger
+          0.55: "rgba(250, 187, 51, 0.75)",  // Orange
+          0.7: "rgba(250, 187, 51, 0.85)",   // Orange stronger
+          0.85: "rgba(232, 74, 65, 0.9)",    // Warm Red
+          1.0: "rgba(232, 74, 65, 1)",       // Warm Red full
         },
       });
       heat.addTo(map);
@@ -219,9 +266,9 @@ export function HeatmapMap({
       const isHovered = port.id === hoveredPortId;
       const colors = getRiskColors(port.risk_level, isDark);
       
-      // Dynamic sizing - balanced for clarity without overlap
-      const baseSize = 12;
-      const size = isSelected ? 20 : isHovered ? 16 : baseSize;
+      // Dynamic sizing - compact
+      const baseSize = 8;
+      const size = isSelected ? 14 : isHovered ? 11 : baseSize;
       
       // Risk-based animation intensity
       const riskClass = port.risk_level === "HIGH" 
@@ -247,7 +294,7 @@ export function HeatmapMap({
             <!-- Glow layer -->
             <div class="marker-glow" style="
               --glow-color: ${colors.glow};
-              --glow-size: ${isSelected ? '35px' : isHovered ? '28px' : '22px'};
+              --glow-size: ${isSelected ? '22px' : isHovered ? '16px' : '12px'};
             "></div>
             
             <!-- Core marker -->
