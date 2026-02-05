@@ -9,6 +9,11 @@ interface PortDetailsPanelProps {
   onClose: () => void;
 }
 
+// Convert risk score to percentage (100 points = 100%)
+function riskToPercent(score: number): number {
+  return Math.min(Math.round((score / 100) * 100), 100);
+}
+
 export function PortDetailsPanel({
   portDetail,
   isLoading,
@@ -73,7 +78,7 @@ export function PortDetailsPanel({
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Risk Score */}
         <div className="text-center py-4 bg-gray-50 rounded-lg">
-          <div className="text-4xl font-bold text-navy">{portDetail.risk_score.toFixed(1)}</div>
+          <div className="text-4xl font-bold text-navy">{riskToPercent(portDetail.risk_score)}%</div>
           <div className="text-sm text-gray-500 mt-1">{t("totalRiskScore")}</div>
         </div>
 
