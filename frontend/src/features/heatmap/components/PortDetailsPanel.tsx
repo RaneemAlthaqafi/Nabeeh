@@ -61,57 +61,19 @@ export function PortDetailsPanel({
 
   // Build explanation based on actual violations
   const buildRiskExplanation = (detail: PortDetail): string => {
-    const lines: string[] = [];
     const isAr = lang === "ar";
     const actualScore = detail.risk_score;
     const percent = riskToPercent(actualScore);
     
-    // Determine risk level emoji
-    let levelEmoji = "🟢";
-    let levelText = isAr ? "آمن" : "Safe";
-    if (percent >= 50) {
-      levelEmoji = "🔴";
-      levelText = isAr ? "عالي" : "High";
-    } else if (percent >= 20) {
-      levelEmoji = "🟡";
-      levelText = isAr ? "متوسط" : "Medium";
-    }
-    
     if (isAr) {
-      lines.push(`${levelEmoji} مستوى الخطورة: ${levelText}`);
-      lines.push("");
-      lines.push("━━━━━━━━━━━━━━━━━━━━");
-      lines.push("");
-      lines.push("حساب النسبة:");
-      lines.push(`• نقاط المخالفات: ${actualScore.toFixed(1)}`);
-      lines.push(`• الحد المرجعي: ${MAX_REFERENCE} نقطة`);
-      lines.push(`• النسبة: ${actualScore.toFixed(1)} ÷ ${MAX_REFERENCE} × 100`);
-      lines.push(`• النتيجة: ${percent}%`);
-      lines.push("");
-      lines.push("━━━━━━━━━━━━━━━━━━━━");
-      lines.push("");
-      lines.push("🟢 0-20% = آمن");
-      lines.push("🟡 20-50% = متوسط");
-      lines.push("🔴 50-100% = عالي");
+      return `0-20% منخفض | 20-50% متوسط | 50%+ عالي
+
+${actualScore.toFixed(1)} نقطة ÷ ${MAX_REFERENCE} × 100 = ${percent}%`;
     } else {
-      lines.push(`${levelEmoji} Risk Level: ${levelText}`);
-      lines.push("");
-      lines.push("━━━━━━━━━━━━━━━━━━━━");
-      lines.push("");
-      lines.push("Calculation:");
-      lines.push(`• Violation points: ${actualScore.toFixed(1)}`);
-      lines.push(`• Reference max: ${MAX_REFERENCE} points`);
-      lines.push(`• Formula: ${actualScore.toFixed(1)} ÷ ${MAX_REFERENCE} × 100`);
-      lines.push(`• Result: ${percent}%`);
-      lines.push("");
-      lines.push("━━━━━━━━━━━━━━━━━━━━");
-      lines.push("");
-      lines.push("🟢 0-20% = Safe");
-      lines.push("🟡 20-50% = Medium");
-      lines.push("🔴 50-100% = High");
+      return `0-20% Low | 20-50% Medium | 50%+ High
+
+${actualScore.toFixed(1)} pts ÷ ${MAX_REFERENCE} × 100 = ${percent}%`;
     }
-    
-    return lines.join("\n");
   };
 
   if (isLoading) {

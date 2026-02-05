@@ -18,30 +18,10 @@ export const en = {
 
   // KPI Labels with clear descriptions
   totalRiskScore: "Risk Index",
-  totalRiskScoreDesc: `What does this percentage mean?
+  totalRiskScoreDesc: `0-20% Low | 20-50% Medium | 50%+ High
 
-🟢 0% - 20% = Safe
-    No significant risks, situation under control
-
-🟡 20% - 50% = Needs Monitoring
-    Medium risks, monitoring recommended
-
-🔴 50% - 100% = Requires Immediate Action
-    High risks, action must be taken
-
-━━━━━━━━━━━━━━━━━━━━━━━
-
-How is it calculated?
-
-Step 1: Sum all violation points
-Step 2: Divide by number of affected ports
-Step 3: Divide by 50 and multiply by 100
-
-Practical example:
-• Total points: 80 points
-• Number of ports: 4 ports
-• Average: 80 ÷ 4 = 20 points per port
-• Percentage: (20 ÷ 50) × 100 = 40% 🟡`,
+Calculation: Average port points ÷ 50 × 100
+Example: 80 pts ÷ 4 ports = 20 ÷ 50 × 100 = 40%`,
   
   totalIncidents: "Recorded Violations",
   totalIncidentsDesc: "Total number of violations detected and recorded during the selected period. Includes all violation types and severity levels.",
