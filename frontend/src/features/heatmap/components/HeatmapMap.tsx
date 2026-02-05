@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
 import "leaflet.heat";
 import { useI18n } from "@/lib/i18n/context";
@@ -37,6 +37,7 @@ export function HeatmapMap({
   const mapRef = useRef<L.Map | null>(null);
   const heatLayerRef = useRef<L.HeatLayer | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const [hoveredPortId, setHoveredPortId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialize map
@@ -48,6 +49,10 @@ export function HeatmapMap({
       zoom: SA_ZOOM,
       zoomControl: true,
       attributionControl: true,
+      scrollWheelZoom: true,
+      doubleClickZoom: true,
+      zoomAnimation: true,
+      fadeAnimation: true,
     });
 
     L.tileLayer(
@@ -112,36 +117,55 @@ export function HeatmapMap({
     // Create new markers
     ports.forEach((port) => {
       const isSelected = port.id === selectedPortId;
+      const isHovered = port.id === hoveredPortId;
       const color = getRiskColor(port.risk_level);
-      const size = isSelected ? 20 : 14;
+      const size = isSelected ? 22 : isHovered ? 18 : 14;
 
       const icon = L.divIcon({
-        className: "port-marker",
+        className: "port-marker-icon",
         html: `
-          <div style="
+          <div class="port-dot" style="
             width: ${size}px;
             height: ${size}px;
             background: ${color};
             border: 2px solid #fff;
             border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3)${isSelected ? ", 0 0 0 4px rgba(29,55,97,0.3)" : ""};
-            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3)${isSelected ? ", 0 0 0 4px rgba(29,55,97,0.3)" : ""};
+            transition: all 0.15s ease;
           "></div>
         `,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -(size / 2)], // Popup appears directly above the marker
       });
 
       const marker = L.marker([port.lat, port.lng], {
         icon,
-        zIndexOffset: isSelected ? 1000 : 0,
+        zIndexOffset: isSelected ? 1000 : isHovered ? 500 : 0,
+        riseOnHover: true,
       });
 
-      // Tooltip
-      marker.bindTooltip(lang === "ar" ? port.name_ar : port.name_en, {
-        direction: "top",
-        offset: [0, -10],
-        className: "port-tooltip",
+      // Create popup that appears directly above marker
+      const popupContent = `<div class="port-name-popup">${lang === "ar" ? port.name_ar : port.name_en}</div>`;
+      
+      marker.bindPopup(popupContent, {
+        closeButton: false,
+        autoClose: false,
+        closeOnEscapeKey: false,
+        closeOnClick: false,
+        className: "port-popup",
+        offset: [0, 0], // No extra offset - popupAnchor handles it
+      });
+
+      // Event handlers
+      marker.on("mouseover", () => {
+        setHoveredPortId(port.id);
+        marker.openPopup();
+      });
+
+      marker.on("mouseout", () => {
+        setHoveredPortId(null);
+        marker.closePopup();
       });
 
       marker.on("click", () => {
@@ -149,19 +173,39 @@ export function HeatmapMap({
           onPortSelect(null);
         } else {
           onPortSelect(port.id);
+          map.flyTo([port.lat, port.lng], Math.max(map.getZoom(), 7), {
+            duration: 0.4,
+          });
         }
       });
 
       marker.addTo(map);
       markersRef.current.set(port.id, marker);
     });
-  }, [ports, selectedPortId, lang, onPortSelect]);
+  }, [ports, selectedPortId, hoveredPortId, lang, onPortSelect]);
+
+  // Reset view
+  const resetView = useCallback(() => {
+    mapRef.current?.flyTo(SA_CENTER, SA_ZOOM, { duration: 0.4 });
+    onPortSelect(null);
+  }, [onPortSelect]);
 
   return (
     <div className="w-full h-full relative bg-gray-100">
       <div ref={containerRef} className="w-full h-full" />
+      
+      {/* Reset View Button */}
+      <button
+        type="button"
+        onClick={resetView}
+        className="absolute top-4 right-14 z-[500] bg-white rounded-lg px-3 py-2 text-sm font-medium text-gray-700 shadow-md hover:bg-gray-50 transition-colors"
+        title="Reset View"
+      >
+        ↺
+      </button>
+
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80">
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 z-[1000]">
           <div className="w-8 h-8 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
         </div>
       )}
