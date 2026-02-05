@@ -201,7 +201,7 @@ body {
 /* KPI Tooltip */
 .kpi-tooltip {
   position: absolute;
-  bottom: calc(100% + 12px);
+  top: calc(100% + 12px);
   right: 0;
   width: 320px;
   padding: 16px 18px;
@@ -221,13 +221,13 @@ body {
   white-space: pre-line;
 }
 
-.kpi-tooltip::after {
+.kpi-tooltip::before {
   content: "";
   position: absolute;
-  top: 100%;
+  bottom: 100%;
   right: 24px;
   border: 8px solid transparent;
-  border-top-color: var(--color-navy);
+  border-bottom-color: var(--color-navy);
 }
 
 .kpi-card:hover .kpi-tooltip,
