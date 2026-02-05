@@ -17,9 +17,17 @@ interface HeatmapMapProps {
 
 function getRiskColor(level: string): string {
   switch (level) {
-    case "HIGH": return "#C62828";
-    case "MEDIUM": return "#F57C00";
-    default: return "#00897B";
+    case "HIGH": return "#ff3d5a";
+    case "MEDIUM": return "#ffa726";
+    default: return "#00e5a0";
+  }
+}
+
+function getRiskGlow(level: string): string {
+  switch (level) {
+    case "HIGH": return "rgba(255, 61, 90, 0.6)";
+    case "MEDIUM": return "rgba(255, 167, 38, 0.5)";
+    default: return "rgba(0, 229, 160, 0.4)";
   }
 }
 
@@ -58,7 +66,7 @@ export function HeatmapMap({
     loadLeaflet();
   }, []);
 
-  // Initialize map
+  // Initialize map with dark premium style
   useEffect(() => {
     if (!isLeafletReady || !containerRef.current || mapRef.current) return;
 
@@ -68,22 +76,31 @@ export function HeatmapMap({
     const map = L.map(containerRef.current, {
       center,
       zoom: SA_ZOOM,
-      zoomControl: true,
-      attributionControl: true,
+      zoomControl: false,
+      attributionControl: false,
       scrollWheelZoom: true,
       doubleClickZoom: true,
       zoomAnimation: true,
       fadeAnimation: true,
     });
 
+    // Dark premium map style
     L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
       {
-        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
         subdomains: "abcd",
         maxZoom: 19,
       }
     ).addTo(map);
+
+    // Add zoom control to bottom right
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+
+    // Custom attribution
+    L.control.attribution({
+      position: "bottomleft",
+      prefix: false,
+    }).addTo(map).addAttribution('© <a href="https://carto.com/">CARTO</a>');
 
     mapRef.current = map;
 
@@ -98,7 +115,7 @@ export function HeatmapMap({
     };
   }, [isLeafletReady, center]);
 
-  // Update heat layer
+  // Update heat layer with stunning gradient
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapRef.current;
@@ -111,16 +128,20 @@ export function HeatmapMap({
     if (points.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const heat = (L as any).heatLayer(points, {
-        radius: 35,
-        blur: 25,
+        radius: 45,
+        blur: 30,
         maxZoom: 10,
         max: 1.0,
+        minOpacity: 0.4,
         gradient: {
-          0.0: "rgba(0, 137, 123, 0.1)",
-          0.3: "rgba(0, 137, 123, 0.4)",
-          0.5: "rgba(245, 124, 0, 0.6)",
-          0.7: "rgba(230, 81, 0, 0.8)",
-          1.0: "rgba(198, 40, 40, 1)",
+          0.0: "rgba(0, 229, 160, 0.0)",
+          0.15: "rgba(0, 229, 160, 0.3)",
+          0.3: "rgba(0, 200, 180, 0.5)",
+          0.45: "rgba(255, 200, 50, 0.6)",
+          0.6: "rgba(255, 140, 0, 0.75)",
+          0.75: "rgba(255, 80, 50, 0.85)",
+          0.9: "rgba(255, 40, 80, 0.95)",
+          1.0: "rgba(255, 0, 60, 1)",
         },
       });
       heat.addTo(map);
@@ -128,7 +149,7 @@ export function HeatmapMap({
     }
   }, [points, isLeafletReady]);
 
-  // Update markers
+  // Update markers with stunning animated effects
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapRef.current;
@@ -143,42 +164,84 @@ export function HeatmapMap({
       const isSelected = port.id === selectedPortId;
       const isHovered = port.id === hoveredPortId;
       const color = getRiskColor(port.risk_level);
-      const size = isSelected ? 22 : isHovered ? 18 : 14;
+      const glow = getRiskGlow(port.risk_level);
+      
+      // Dynamic sizing
+      const baseSize = 16;
+      const size = isSelected ? baseSize + 10 : isHovered ? baseSize + 6 : baseSize;
+      
+      // Animation class based on risk
+      const animationClass = port.risk_level === "HIGH" 
+        ? "pulse-high" 
+        : port.risk_level === "MEDIUM" 
+          ? "pulse-medium" 
+          : "pulse-low";
 
       const icon = L.divIcon({
-        className: "port-marker-icon",
+        className: "port-marker-wrapper",
         html: `
-          <div class="port-dot" style="
-            width: ${size}px;
-            height: ${size}px;
-            background: ${color};
-            border: 2px solid #fff;
-            border-radius: 50%;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3)${isSelected ? ", 0 0 0 4px rgba(29,55,97,0.3)" : ""};
-            transition: all 0.15s ease;
-          "></div>
+          <div class="port-marker ${animationClass} ${isSelected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}">
+            <!-- Outer glow ring -->
+            <div class="marker-glow" style="
+              background: ${glow};
+              box-shadow: 0 0 ${isSelected ? '30' : '20'}px ${isSelected ? '15' : '10'}px ${glow};
+            "></div>
+            
+            <!-- Pulse rings for high risk -->
+            ${port.risk_level === "HIGH" ? `
+              <div class="pulse-ring" style="border-color: ${color};"></div>
+              <div class="pulse-ring delay-1" style="border-color: ${color};"></div>
+            ` : ''}
+            
+            <!-- Main dot -->
+            <div class="marker-core" style="
+              width: ${size}px;
+              height: ${size}px;
+              background: radial-gradient(circle at 30% 30%, ${color}, ${color}dd);
+              box-shadow: 
+                0 0 10px ${glow},
+                inset 0 -2px 6px rgba(0,0,0,0.3),
+                inset 0 2px 4px rgba(255,255,255,0.4);
+            "></div>
+            
+            <!-- Inner highlight -->
+            <div class="marker-highlight" style="
+              width: ${size * 0.4}px;
+              height: ${size * 0.4}px;
+            "></div>
+          </div>
         `,
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-        popupAnchor: [0, -(size / 2)],
+        iconSize: [50, 50],
+        iconAnchor: [25, 25],
+        popupAnchor: [0, -20],
       });
 
       const marker = L.marker([port.lat, port.lng], {
         icon,
-        zIndexOffset: isSelected ? 1000 : isHovered ? 500 : 0,
+        zIndexOffset: isSelected ? 1000 : isHovered ? 500 : port.risk_level === "HIGH" ? 100 : 0,
         riseOnHover: true,
       });
 
-      // Create popup that appears directly above marker
-      const popupContent = `<div class="port-name-popup">${lang === "ar" ? port.name_ar : port.name_en}</div>`;
+      // Create elegant popup
+      const popupContent = `
+        <div class="port-popup-content">
+          <div class="port-popup-name">${lang === "ar" ? port.name_ar : port.name_en}</div>
+          <div class="port-popup-risk" style="color: ${color};">
+            <span class="risk-dot" style="background: ${color};"></span>
+            ${port.risk_level === "HIGH" ? (lang === "ar" ? "عالي" : "High") :
+              port.risk_level === "MEDIUM" ? (lang === "ar" ? "متوسط" : "Medium") :
+              (lang === "ar" ? "منخفض" : "Low")}
+          </div>
+        </div>
+      `;
       
       marker.bindPopup(popupContent, {
         closeButton: false,
         autoClose: false,
         closeOnEscapeKey: false,
         closeOnClick: false,
-        className: "port-popup",
-        offset: [0, 0],
+        className: "stunning-popup",
+        offset: [0, -5],
       });
 
       // Event handlers
@@ -197,8 +260,9 @@ export function HeatmapMap({
           onPortSelect(null);
         } else {
           onPortSelect(port.id);
-          map.flyTo([port.lat, port.lng], Math.max(map.getZoom(), 7), {
-            duration: 0.4,
+          map.flyTo([port.lat, port.lng], Math.max(map.getZoom(), 8), {
+            duration: 0.6,
+            easeLinearity: 0.25,
           });
         }
       });
@@ -210,27 +274,57 @@ export function HeatmapMap({
 
   // Reset view
   const resetView = useCallback(() => {
-    mapRef.current?.flyTo(SA_CENTER, SA_ZOOM, { duration: 0.4 });
+    mapRef.current?.flyTo(SA_CENTER, SA_ZOOM, { duration: 0.6 });
     onPortSelect(null);
   }, [onPortSelect]);
 
   return (
-    <div className="w-full h-full relative bg-gray-100">
-      <div ref={containerRef} className="w-full h-full" />
+    <div className="heatmap-container">
+      {/* Ambient gradient overlay */}
+      <div className="ambient-overlay" />
       
-      {/* Reset View Button */}
-      <button
-        type="button"
-        onClick={resetView}
-        className="absolute top-4 right-14 z-[500] bg-white rounded-lg px-3 py-2 text-sm font-medium text-gray-700 shadow-md hover:bg-gray-50 transition-colors"
-        title="Reset View"
-      >
-        ↺
-      </button>
+      <div ref={containerRef} className="map-canvas" />
+      
+      {/* Floating controls */}
+      <div className="map-controls">
+        <button
+          type="button"
+          onClick={resetView}
+          className="control-btn"
+          title="Reset View"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Legend */}
+      <div className="map-legend">
+        <div className="legend-title">{lang === "ar" ? "مستوى الخطورة" : "Risk Level"}</div>
+        <div className="legend-items">
+          <div className="legend-item">
+            <span className="legend-dot high"></span>
+            <span>{lang === "ar" ? "عالي" : "High"}</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-dot medium"></span>
+            <span>{lang === "ar" ? "متوسط" : "Medium"}</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-dot low"></span>
+            <span>{lang === "ar" ? "منخفض" : "Low"}</span>
+          </div>
+        </div>
+      </div>
 
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 z-[1000]">
-          <div className="w-8 h-8 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
+        <div className="loading-overlay">
+          <div className="loading-spinner">
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring delay"></div>
+          </div>
         </div>
       )}
     </div>
