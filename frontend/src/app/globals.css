@@ -145,12 +145,15 @@ body {
   background: #f9fafb;
   border-radius: 10px;
   min-width: 120px;
-  cursor: help;
+  cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid transparent;
+  outline: none;
 }
 
-.kpi-card:hover {
+.kpi-card:hover,
+.kpi-card:focus,
+.kpi-card.active {
   background: #fff;
   border-color: #e5e7eb;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -185,11 +188,13 @@ body {
   color: #9ca3af;
   background: #e5e7eb;
   border-radius: 50%;
-  opacity: 0;
+  opacity: 0.6;
   transition: opacity 0.2s ease;
 }
 
-.kpi-card:hover .kpi-help {
+.kpi-card:hover .kpi-help,
+.kpi-card:focus .kpi-help,
+.kpi-card.active .kpi-help {
   opacity: 1;
 }
 
@@ -210,6 +215,7 @@ body {
   box-shadow: 0 8px 24px rgba(29, 55, 97, 0.3);
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transition: all 0.2s ease;
   z-index: 1000;
   text-align: start;
@@ -225,9 +231,12 @@ body {
   border-top-color: var(--color-navy);
 }
 
-.kpi-card:hover .kpi-tooltip {
+.kpi-card:hover .kpi-tooltip,
+.kpi-card:focus .kpi-tooltip,
+.kpi-card.active .kpi-tooltip {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 /* Filter Chips */
