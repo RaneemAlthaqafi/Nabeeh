@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
 import type { PortDetail } from "@/lib/api/client";
 
@@ -8,6 +9,17 @@ interface PortDetailsPanelProps {
   isLoading: boolean;
   onClose: () => void;
 }
+
+// Violation weights (same as backend)
+const VIOLATION_WEIGHTS: Record<string, number> = {
+  violence: 5,
+  abusive_language: 4,
+  camera_blocking: 3,
+  camera_misuse: 3,
+  camera_shake: 2,
+  smoking: 2,
+  shouting: 2,
+};
 
 // Convert risk score to percentage (100 points = 100%)
 function riskToPercent(score: number): number {
@@ -20,6 +32,7 @@ export function PortDetailsPanel({
   onClose,
 }: PortDetailsPanelProps) {
   const { t, lang } = useI18n();
+  const [showRiskExplanation, setShowRiskExplanation] = useState(false);
 
   const formatTime = (isoString: string | null) => {
     if (!isoString) return "—";
@@ -41,6 +54,39 @@ export function PortDetailsPanel({
       default:
         return "bg-teal-100 text-teal-700";
     }
+  };
+
+  // Build explanation based on actual violations
+  const buildRiskExplanation = (detail: PortDetail): string => {
+    const lines: string[] = [];
+    const isAr = lang === "ar";
+    
+    lines.push(isAr ? "كيف حُسبت هذه النسبة؟" : "How was this calculated?");
+    lines.push("");
+    
+    let totalPoints = 0;
+    Object.entries(detail.violations_breakdown).forEach(([type, count]) => {
+      const weight = VIOLATION_WEIGHTS[type] || 2;
+      const points = count * weight * 0.6; // Assuming average medium severity
+      totalPoints += points;
+      const typeName = t(type);
+      if (isAr) {
+        lines.push(`• ${typeName}: ${count} × ${weight} نقطة ≈ ${points.toFixed(1)}`);
+      } else {
+        lines.push(`• ${typeName}: ${count} × ${weight} pts ≈ ${points.toFixed(1)}`);
+      }
+    });
+    
+    lines.push("");
+    if (isAr) {
+      lines.push(`المجموع ≈ ${totalPoints.toFixed(1)} نقطة`);
+      lines.push(`النسبة = ${totalPoints.toFixed(1)} ÷ 100 = ${riskToPercent(detail.risk_score)}%`);
+    } else {
+      lines.push(`Total ≈ ${totalPoints.toFixed(1)} points`);
+      lines.push(`Percentage = ${totalPoints.toFixed(1)} ÷ 100 = ${riskToPercent(detail.risk_score)}%`);
+    }
+    
+    return lines.join("\n");
   };
 
   if (isLoading) {
@@ -76,10 +122,33 @@ export function PortDetailsPanel({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* Risk Score */}
-        <div className="text-center py-4 bg-gray-50 rounded-lg">
-          <div className="text-4xl font-bold text-navy">{riskToPercent(portDetail.risk_score)}%</div>
-          <div className="text-sm text-gray-500 mt-1">{t("totalRiskScore")}</div>
+        {/* Risk Score - Clickable */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowRiskExplanation(!showRiskExplanation)}
+            className="w-full text-center py-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+          >
+            <div className="text-4xl font-bold text-navy">{riskToPercent(portDetail.risk_score)}%</div>
+            <div className="text-sm text-gray-500 mt-1 flex items-center justify-center gap-1">
+              {t("totalRiskScore")}
+              <span className="w-4 h-4 bg-gray-200 rounded-full text-xs flex items-center justify-center text-gray-500">؟</span>
+            </div>
+          </button>
+          
+          {/* Explanation Tooltip */}
+          {showRiskExplanation && (
+            <div className="absolute top-full left-0 right-0 mt-2 p-4 bg-navy text-white text-sm rounded-lg shadow-lg z-10 whitespace-pre-line">
+              <button
+                type="button"
+                onClick={() => setShowRiskExplanation(false)}
+                className="absolute top-2 left-2 text-white/60 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+              {buildRiskExplanation(portDetail)}
+            </div>
+          )}
         </div>
 
         {/* Quick Stats */}
