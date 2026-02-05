@@ -65,14 +65,40 @@ export function PortDetailsPanel({
     const actualScore = detail.risk_score;
     const percent = riskToPercent(actualScore);
     
+    // Determine level text
+    let levelText = isAr ? "منخفض" : "Low";
+    if (percent >= 50) {
+      levelText = isAr ? "عالي" : "High";
+    } else if (percent >= 20) {
+      levelText = isAr ? "متوسط" : "Medium";
+    }
+    
     if (isAr) {
-      return `0-20% منخفض | 20-50% متوسط | 50%+ عالي
+      return `يقيس مستوى المخاطر في هذا المنفذ.
 
-${actualScore.toFixed(1)} نقطة ÷ ${MAX_REFERENCE} × 100 = ${percent}%`;
+كيف يُحسب؟
+نقاط المخالفات ÷ 50 × 100
+
+حساب هذا المنفذ:
+${actualScore.toFixed(1)} ÷ 50 × 100 = ${percent}%
+
+التصنيف: ${levelText}
+أقل من 20% = منخفض
+20% إلى 50% = متوسط
+أكثر من 50% = عالي`;
     } else {
-      return `0-20% Low | 20-50% Medium | 50%+ High
+      return `Measures the risk level at this port.
 
-${actualScore.toFixed(1)} pts ÷ ${MAX_REFERENCE} × 100 = ${percent}%`;
+How is it calculated?
+Violation points ÷ 50 × 100
+
+This port's calculation:
+${actualScore.toFixed(1)} ÷ 50 × 100 = ${percent}%
+
+Classification: ${levelText}
+Below 20% = Low
+20% to 50% = Medium
+Above 50% = High`;
     }
   };
 
