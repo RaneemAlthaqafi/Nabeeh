@@ -66,28 +66,49 @@ export function PortDetailsPanel({
     const actualScore = detail.risk_score;
     const percent = riskToPercent(actualScore);
     
+    // Determine risk level emoji
+    let levelEmoji = "🟢";
+    let levelText = isAr ? "آمن" : "Safe";
+    if (percent >= 50) {
+      levelEmoji = "🔴";
+      levelText = isAr ? "عالي" : "High";
+    } else if (percent >= 20) {
+      levelEmoji = "🟡";
+      levelText = isAr ? "متوسط" : "Medium";
+    }
+    
     if (isAr) {
-      lines.push("كيف حُسبت هذه النسبة؟");
+      lines.push(`${levelEmoji} مستوى الخطورة: ${levelText}`);
       lines.push("");
-      lines.push(`النقاط الفعلية: ${actualScore.toFixed(1)} نقطة`);
-      lines.push(`الحد المرجعي: ${MAX_REFERENCE} نقطة = 100%`);
-      lines.push(`النسبة: ${actualScore.toFixed(1)} ÷ ${MAX_REFERENCE} = ${percent}%`);
+      lines.push("━━━━━━━━━━━━━━━━━━━━");
       lines.push("");
-      lines.push("تصنيف الخطورة:");
-      lines.push("• 0-20% = منخفضة (أقل من 10 نقاط)");
-      lines.push("• 20-50% = متوسطة (10-25 نقطة)");
-      lines.push("• 50-100% = عالية (أكثر من 25 نقطة)");
+      lines.push("حساب النسبة:");
+      lines.push(`• نقاط المخالفات: ${actualScore.toFixed(1)}`);
+      lines.push(`• الحد المرجعي: ${MAX_REFERENCE} نقطة`);
+      lines.push(`• النسبة: ${actualScore.toFixed(1)} ÷ ${MAX_REFERENCE} × 100`);
+      lines.push(`• النتيجة: ${percent}%`);
+      lines.push("");
+      lines.push("━━━━━━━━━━━━━━━━━━━━");
+      lines.push("");
+      lines.push("🟢 0-20% = آمن");
+      lines.push("🟡 20-50% = متوسط");
+      lines.push("🔴 50-100% = عالي");
     } else {
-      lines.push("How was this calculated?");
+      lines.push(`${levelEmoji} Risk Level: ${levelText}`);
       lines.push("");
-      lines.push(`Actual points: ${actualScore.toFixed(1)}`);
-      lines.push(`Reference max: ${MAX_REFERENCE} points = 100%`);
-      lines.push(`Percentage: ${actualScore.toFixed(1)} ÷ ${MAX_REFERENCE} = ${percent}%`);
+      lines.push("━━━━━━━━━━━━━━━━━━━━");
       lines.push("");
-      lines.push("Risk classification:");
-      lines.push("• 0-20% = Low (under 10 points)");
-      lines.push("• 20-50% = Medium (10-25 points)");
-      lines.push("• 50-100% = High (over 25 points)");
+      lines.push("Calculation:");
+      lines.push(`• Violation points: ${actualScore.toFixed(1)}`);
+      lines.push(`• Reference max: ${MAX_REFERENCE} points`);
+      lines.push(`• Formula: ${actualScore.toFixed(1)} ÷ ${MAX_REFERENCE} × 100`);
+      lines.push(`• Result: ${percent}%`);
+      lines.push("");
+      lines.push("━━━━━━━━━━━━━━━━━━━━");
+      lines.push("");
+      lines.push("🟢 0-20% = Safe");
+      lines.push("🟡 20-50% = Medium");
+      lines.push("🔴 50-100% = High");
     }
     
     return lines.join("\n");
