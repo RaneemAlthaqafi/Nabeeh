@@ -48,7 +48,7 @@ export const en = {
   violence: "Physical Assault",
   camera_blocking: "Camera Blocking",
   camera_misuse: "Camera Tampering",
-  camera_shake: "Camera Shake",
+  camera_shake: "Camera Instability",
   smoking: "Smoking",
   shouting: "Raised Voice",
   abusive_language: "Verbal Abuse",
