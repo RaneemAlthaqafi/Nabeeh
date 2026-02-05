@@ -19,18 +19,19 @@ export const en = {
 
   // KPI Labels with clear descriptions
   totalRiskScore: "Risk Index",
-  totalRiskScoreDesc: `Risk Levels:
-🔴 High: 25 points or more
-🟠 Medium: 10 to 24.9 points
-🟢 Low: Less than 10 points
+  totalRiskScoreDesc: `Risk percentage out of 100%
+• 0-25% = Safe
+• 25-50% = Needs monitoring
+• 50-75% = Notable risk
+• 75-100% = Very high risk
 
-How calculated? Each violation has points:
-• Assault = 5 | Verbal Abuse = 4
-• Camera Blocking/Tampering = 3
-• Smoking/Shouting/Camera = 2
+How is it calculated?
+Violation points are summed then converted to percentage.
 
-Multiplied by severity:
-High ×1 | Medium ×0.6 | Low ×0.3`,
+Points per violation:
+Assault=5 | Verbal=4 | Camera=3 | Other=2
+
+Example: 46 medium violations ≈ 58%`,
   
   totalIncidents: "Recorded Violations",
   totalIncidentsDesc: "Total number of violations detected and recorded during the selected period. Includes all violation types and severity levels.",

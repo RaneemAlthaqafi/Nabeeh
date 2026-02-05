@@ -32,19 +32,10 @@ const VIOLATION_TYPES: ViolationType[] = [
   "smoking", "shouting", "abusive_language"
 ];
 
-// Risk level thresholds (same as backend)
-function getRiskLevel(score: number): "HIGH" | "MEDIUM" | "LOW" {
-  if (score >= 25) return "HIGH";
-  if (score >= 10) return "MEDIUM";
-  return "LOW";
-}
-
-function getRiskColor(level: "HIGH" | "MEDIUM" | "LOW"): string {
-  switch (level) {
-    case "HIGH": return "#C62828";
-    case "MEDIUM": return "#F57C00";
-    case "LOW": return "#00897B";
-  }
+// Convert risk score to percentage (100 = maximum expected risk)
+function riskToPercent(score: number): number {
+  // 100 points is considered 100% (very high risk scenario)
+  return Math.min(Math.round((score / 100) * 100), 100);
 }
 
 export default function HeatmapPage() {
@@ -106,17 +97,9 @@ export default function HeatmapPage() {
               className={`kpi-card ${activeKpi === "risk" ? "active" : ""}`}
               onClick={() => setActiveKpi(activeKpi === "risk" ? null : "risk")}
             >
-              <div className="flex items-center gap-2">
-                <span className="kpi-value">{summary?.total_risk_score.toFixed(1) ?? "—"}</span>
-                {summary && (
-                  <span 
-                    className="risk-badge"
-                    style={{ backgroundColor: getRiskColor(getRiskLevel(summary.total_risk_score)) }}
-                  >
-                    {t(getRiskLevel(summary.total_risk_score))}
-                  </span>
-                )}
-              </div>
+              <span className="kpi-value">
+                {summary ? `${riskToPercent(summary.total_risk_score)}%` : "—"}
+              </span>
               <span className="kpi-label">{t("totalRiskScore")}</span>
               <span className="kpi-help">؟</span>
               <div className="kpi-tooltip">{t("totalRiskScoreDesc")}</div>
