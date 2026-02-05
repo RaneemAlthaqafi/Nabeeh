@@ -31,10 +31,12 @@ const VIOLATION_TYPES: ViolationType[] = [
   "smoking", "shouting", "abusive_language"
 ];
 
-// Convert risk score to percentage (100 = maximum expected risk)
+// Convert risk score to percentage
+// Reference: 50 points = 100% (very high risk)
+// This aligns with thresholds: HIGH >= 25 (50%), MEDIUM >= 10 (20%), LOW < 10
 function riskToPercent(score: number): number {
-  // 100 points is considered 100% (very high risk scenario)
-  return Math.min(Math.round((score / 100) * 100), 100);
+  const MAX_REFERENCE = 50; // 50 points = 100%
+  return Math.min(Math.round((score / MAX_REFERENCE) * 100), 100);
 }
 
 export default function HeatmapPage() {

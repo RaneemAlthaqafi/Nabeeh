@@ -21,9 +21,12 @@ const VIOLATION_WEIGHTS: Record<string, number> = {
   shouting: 2,
 };
 
-// Convert risk score to percentage (100 points = 100%)
+// Convert risk score to percentage
+// Reference: 50 points = 100% (very high risk)
+// This aligns with thresholds: HIGH >= 25 (50%), MEDIUM >= 10 (20%), LOW < 10
+const MAX_REFERENCE = 50;
 function riskToPercent(score: number): number {
-  return Math.min(Math.round((score / 100) * 100), 100);
+  return Math.min(Math.round((score / MAX_REFERENCE) * 100), 100);
 }
 
 export function PortDetailsPanel({
@@ -60,30 +63,31 @@ export function PortDetailsPanel({
   const buildRiskExplanation = (detail: PortDetail): string => {
     const lines: string[] = [];
     const isAr = lang === "ar";
+    const actualScore = detail.risk_score;
+    const percent = riskToPercent(actualScore);
     
-    lines.push(isAr ? "كيف حُسبت هذه النسبة؟" : "How was this calculated?");
-    lines.push("");
-    
-    let totalPoints = 0;
-    Object.entries(detail.violations_breakdown).forEach(([type, count]) => {
-      const weight = VIOLATION_WEIGHTS[type] || 2;
-      const points = count * weight * 0.6; // Assuming average medium severity
-      totalPoints += points;
-      const typeName = t(type);
-      if (isAr) {
-        lines.push(`• ${typeName}: ${count} × ${weight} نقطة ≈ ${points.toFixed(1)}`);
-      } else {
-        lines.push(`• ${typeName}: ${count} × ${weight} pts ≈ ${points.toFixed(1)}`);
-      }
-    });
-    
-    lines.push("");
     if (isAr) {
-      lines.push(`المجموع ≈ ${totalPoints.toFixed(1)} نقطة`);
-      lines.push(`النسبة = ${totalPoints.toFixed(1)} ÷ 100 = ${riskToPercent(detail.risk_score)}%`);
+      lines.push("كيف حُسبت هذه النسبة؟");
+      lines.push("");
+      lines.push(`النقاط الفعلية: ${actualScore.toFixed(1)} نقطة`);
+      lines.push(`الحد المرجعي: ${MAX_REFERENCE} نقطة = 100%`);
+      lines.push(`النسبة: ${actualScore.toFixed(1)} ÷ ${MAX_REFERENCE} = ${percent}%`);
+      lines.push("");
+      lines.push("تصنيف الخطورة:");
+      lines.push("• 0-20% = منخفضة (أقل من 10 نقاط)");
+      lines.push("• 20-50% = متوسطة (10-25 نقطة)");
+      lines.push("• 50-100% = عالية (أكثر من 25 نقطة)");
     } else {
-      lines.push(`Total ≈ ${totalPoints.toFixed(1)} points`);
-      lines.push(`Percentage = ${totalPoints.toFixed(1)} ÷ 100 = ${riskToPercent(detail.risk_score)}%`);
+      lines.push("How was this calculated?");
+      lines.push("");
+      lines.push(`Actual points: ${actualScore.toFixed(1)}`);
+      lines.push(`Reference max: ${MAX_REFERENCE} points = 100%`);
+      lines.push(`Percentage: ${actualScore.toFixed(1)} ÷ ${MAX_REFERENCE} = ${percent}%`);
+      lines.push("");
+      lines.push("Risk classification:");
+      lines.push("• 0-20% = Low (under 10 points)");
+      lines.push("• 20-50% = Medium (10-25 points)");
+      lines.push("• 50-100% = High (over 25 points)");
     }
     
     return lines.join("\n");
