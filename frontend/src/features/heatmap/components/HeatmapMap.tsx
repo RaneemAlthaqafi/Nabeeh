@@ -1,218 +1,179 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import L from "leaflet";
+import "leaflet.heat";
+import { useI18n } from "@/lib/i18n/context";
+import type { PortSummary } from "@/lib/api/client";
 
-export type HeatPoint = [number, number, number];
-
-interface Port {
-  id: string;
-  name_ar: string;
-  lat: number;
-  lng: number;
-}
+// Saudi Arabia center
+const SA_CENTER: [number, number] = [24.5, 46.5];
+const SA_ZOOM = 6;
 
 interface HeatmapMapProps {
-  points: HeatPoint[];
+  points: [number, number, number][];
   center: [number, number];
-  onPortSelect?: (portId: string) => void;
-  selectedPortId?: string | null;
-  ports?: Port[];
+  ports: PortSummary[];
+  selectedPortId: string | null;
+  onPortSelect: (portId: string | null) => void;
+  dimUnselected?: boolean;
 }
 
-/**
- * Intelligent, government-grade interactive map for Nabeeh.
- * 
- * Design principles:
- * - Deliberate, smooth responses
- * - Progressive information disclosure
- * - Calm, institutional tone
- * - No decorative animations
- */
-export function HeatmapMap({ 
-  points, 
-  center, 
-  onPortSelect, 
+// Risk color mapping
+function getRiskColor(level: string): string {
+  switch (level) {
+    case "HIGH":
+      return "#C62828";
+    case "MEDIUM":
+      return "#F57C00";
+    default:
+      return "#00897B";
+  }
+}
+
+// Create custom marker icon
+function createMarkerIcon(
+  port: PortSummary,
+  isSelected: boolean,
+  isHovered: boolean
+): L.DivIcon {
+  const baseSize = isSelected ? 24 : isHovered ? 20 : 16;
+  const color = getRiskColor(port.risk_level);
+  const borderWidth = isSelected ? 3 : 2;
+  const opacity = 1;
+
+  return L.divIcon({
+    className: `port-marker ${isSelected ? "selected" : ""} ${isHovered ? "hovered" : ""}`,
+    html: `
+      <div style="
+        width: ${baseSize}px;
+        height: ${baseSize}px;
+        background: ${color};
+        border: ${borderWidth}px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3)${isSelected ? ", 0 0 0 4px rgba(29,55,97,0.3)" : ""};
+        opacity: ${opacity};
+        transition: all 0.2s ease;
+        transform: ${isHovered && !isSelected ? "scale(1.15)" : "scale(1)"};
+      "></div>
+    `,
+    iconSize: [baseSize, baseSize],
+    iconAnchor: [baseSize / 2, baseSize / 2],
+  });
+}
+
+export function HeatmapMap({
+  points,
+  center,
+  ports,
   selectedPortId,
-  ports = [] 
+  onPortSelect,
+  dimUnselected = false,
 }: HeatmapMapProps) {
+  const { lang } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const heatLayerRef = useRef<L.Layer | null>(null);
+  const heatLayerRef = useRef<L.HeatLayer | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
-  const [mounted, setMounted] = useState(false);
   const [hoveredPortId, setHoveredPortId] = useState<string | null>(null);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const prevPointsRef = useRef<HeatPoint[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Initialize map
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Initialize map with refined settings
-  useEffect(() => {
-    if (!mounted || !containerRef.current || typeof window === "undefined") return;
-
-    const L = require("leaflet");
-    require("leaflet.heat");
-
-    if (mapRef.current) return;
+    if (!containerRef.current || mapRef.current) return;
 
     const map = L.map(containerRef.current, {
       center,
-      zoom: 5,
+      zoom: SA_ZOOM,
       zoomControl: false,
-      attributionControl: false,
-      // Smooth interactions
+      attributionControl: true,
+      scrollWheelZoom: true,
+      doubleClickZoom: true,
+      touchZoom: true,
+      dragging: true,
       zoomAnimation: true,
       fadeAnimation: true,
       markerZoomAnimation: true,
-      zoomAnimationThreshold: 4,
-      // Refined zoom behavior
-      wheelDebounceTime: 80,
-      wheelPxPerZoomLevel: 120,
-      // Smooth panning
-      inertia: true,
-      inertiaDeceleration: 2000,
-      inertiaMaxSpeed: 1500,
-      easeLinearity: 0.25,
     });
 
-    // Custom zoom control position
-    L.control.zoom({
-      position: "bottomright",
-    }).addTo(map);
+    // Add zoom control to top-right
+    L.control.zoom({ position: "topright" }).addTo(map);
 
-    // Minimal attribution
-    L.control.attribution({
-      position: "bottomleft",
-      prefix: false,
-    }).addTo(map);
-
-    // Refined tile layer with smooth loading
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      attribution: "© OpenStreetMap © CARTO",
-      maxZoom: 19,
-      subdomains: "abcd",
-    }).addTo(map);
+    // Use CARTO light tiles for clean look
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 19,
+      }
+    ).addTo(map);
 
     mapRef.current = map;
 
-    // Delayed size calculation for proper rendering
-    const resizeTimer = setTimeout(() => {
-      map.invalidateSize({ animate: false });
-    }, 150);
-
-    // Handle window resize gracefully
-    const handleResize = () => {
-      if (mapRef.current) {
-        mapRef.current.invalidateSize({ animate: true, duration: 0.3 });
-      }
-    };
-    window.addEventListener("resize", handleResize);
+    // Fix map size after render
+    setTimeout(() => {
+      map.invalidateSize();
+      setIsLoading(false);
+    }, 100);
 
     return () => {
-      clearTimeout(resizeTimer);
-      window.removeEventListener("resize", handleResize);
       map.remove();
       mapRef.current = null;
-      heatLayerRef.current = null;
-      markersRef.current.clear();
     };
-  }, [mounted, center]);
+  }, [center]);
 
-  // Animated heatmap transitions
+  // Update heat layer
   useEffect(() => {
-    if (!mounted || !mapRef.current || typeof window === "undefined") return;
-    const L = require("leaflet");
     const map = mapRef.current;
+    if (!map) return;
 
-    // Signal transition state
-    setIsTransitioning(true);
-
-    // Fade out existing layer smoothly
-    const oldLayer = heatLayerRef.current;
-    if (oldLayer) {
-      const container = (oldLayer as unknown as { _canvas?: HTMLCanvasElement })._canvas;
-      if (container) {
-        container.style.transition = "opacity 0.3s ease-out";
-        container.style.opacity = "0";
-      }
-      setTimeout(() => {
-        try {
-          map.removeLayer(oldLayer);
-        } catch { /* layer might already be removed */ }
-      }, 300);
+    // Remove old heat layer
+    if (heatLayerRef.current) {
+      map.removeLayer(heatLayerRef.current);
     }
 
-    // Create new heat layer with refined settings
-    const heatLayer = (L as unknown as { 
-      heatLayer: (points: HeatPoint[], options?: object) => L.Layer 
-    }).heatLayer(points, {
-      radius: 30,
-      blur: 20,
-      maxZoom: 17,
-      max: 1.0,
-      minOpacity: 0.4,
-      gradient: {
-        0.0: "rgba(79, 187, 189, 0)",      // Transparent teal
-        0.25: "rgba(79, 187, 189, 0.6)",   // Teal (LOW)
-        0.5: "rgba(250, 187, 51, 0.75)",   // Orange (MEDIUM)
-        0.75: "rgba(232, 74, 65, 0.85)",   // Warm Red (HIGH)
-        1.0: "rgba(232, 74, 65, 1)",       // Full Red (CRITICAL)
-      },
-    });
-
-    // Add with fade-in effect
-    heatLayer.addTo(map);
-    const newContainer = (heatLayer as unknown as { _canvas?: HTMLCanvasElement })._canvas;
-    if (newContainer) {
-      newContainer.style.opacity = "0";
-      newContainer.style.transition = "opacity 0.4s ease-in";
-      requestAnimationFrame(() => {
-        newContainer.style.opacity = "1";
+    // Create new heat layer
+    if (points.length > 0) {
+      const heat = (L as any).heatLayer(points, {
+        radius: 35,
+        blur: 25,
+        maxZoom: 10,
+        max: 1.0,
+        gradient: {
+          0.0: "rgba(0, 137, 123, 0.1)",
+          0.3: "rgba(0, 137, 123, 0.4)",
+          0.5: "rgba(245, 124, 0, 0.6)",
+          0.7: "rgba(230, 81, 0, 0.8)",
+          1.0: "rgba(198, 40, 40, 1)",
+        },
       });
+      heat.addTo(map);
+      heatLayerRef.current = heat;
     }
+  }, [points]);
 
-    heatLayerRef.current = heatLayer;
-    prevPointsRef.current = points;
-
-    // Clear transition state
-    setTimeout(() => setIsTransitioning(false), 400);
-
-  }, [mounted, points]);
-
-  const handlePortSelect = useCallback(
-    (portId: string) => {
-      onPortSelect?.(portId);
-    },
-    [onPortSelect]
-  );
-
-  // Create intelligent port markers with interaction states
+  // Update markers
   useEffect(() => {
-    if (!mounted || !mapRef.current || !ports.length || typeof window === "undefined") return;
-    const L = require("leaflet");
     const map = mapRef.current;
+    if (!map) return;
 
     // Clear existing markers
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current.clear();
 
+    // Create new markers
     ports.forEach((port) => {
-      const isSelected = selectedPortId === port.id;
-      const isHovered = hoveredPortId === port.id;
-
-      // Create dynamic icon based on state
-      const icon = createPortIcon(L, { isSelected, isHovered });
+      const isSelected = port.id === selectedPortId;
+      const isHovered = port.id === hoveredPortId;
 
       const marker = L.marker([port.lat, port.lng], {
-        icon,
-        zIndexOffset: isSelected ? 1000 : isHovered ? 800 : 500,
+        icon: createMarkerIcon(port, isSelected, isHovered),
+        zIndexOffset: isSelected ? 1000 : isHovered ? 500 : 0,
         riseOnHover: true,
-        riseOffset: 250,
       });
 
-      // Popup above marker on hover (more reliable than tooltip)
+      // Popup for port name
       const popup = L.popup({
         closeButton: false,
         autoClose: false,
@@ -220,21 +181,11 @@ export function HeatmapMap({
         closeOnClick: false,
         className: "nabeeh-popup",
         offset: [0, -8],
-      }).setContent(`<span>${port.name_ar}</span>`);
-      
+      }).setContent(`<span>${lang === "ar" ? port.name_ar : port.name_en}</span>`);
+
       marker.bindPopup(popup);
 
-      // Interaction handlers
-      marker.on("click", () => {
-        handlePortSelect(port.id);
-        // Smooth pan to selected port
-        map.panTo([port.lat, port.lng], {
-          animate: true,
-          duration: 0.4,
-          easeLinearity: 0.25,
-        });
-      });
-
+      // Event handlers
       marker.on("mouseover", () => {
         setHoveredPortId(port.id);
         marker.openPopup();
@@ -245,104 +196,77 @@ export function HeatmapMap({
         marker.closePopup();
       });
 
+      marker.on("click", () => {
+        if (selectedPortId === port.id) {
+          onPortSelect(null);
+        } else {
+          onPortSelect(port.id);
+          // Smooth pan to selected port
+          map.flyTo([port.lat, port.lng], Math.max(map.getZoom(), 7), {
+            duration: 0.5,
+          });
+        }
+      });
+
       marker.addTo(map);
       markersRef.current.set(port.id, marker);
     });
 
-    return () => {
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current.clear();
-    };
-  }, [mounted, ports, handlePortSelect, selectedPortId, hoveredPortId]);
+    // Update marker icons when selection/hover changes
+    return () => {};
+  }, [ports, lang, onPortSelect, selectedPortId]);
 
-  // Update marker icons when selection/hover changes
+  // Update marker icons on hover/selection change
   useEffect(() => {
-    if (!mounted || typeof window === "undefined") return;
-    const L = require("leaflet");
-
     markersRef.current.forEach((marker, portId) => {
-      const isSelected = selectedPortId === portId;
-      const isHovered = hoveredPortId === portId;
-      const newIcon = createPortIcon(L, { isSelected, isHovered });
-      marker.setIcon(newIcon);
-      marker.setZIndexOffset(isSelected ? 1000 : isHovered ? 800 : 500);
+      const port = ports.find((p) => p.id === portId);
+      if (!port) return;
+
+      const isSelected = portId === selectedPortId;
+      const isHovered = portId === hoveredPortId;
+
+      marker.setIcon(createMarkerIcon(port, isSelected, isHovered));
+      marker.setZIndexOffset(isSelected ? 1000 : isHovered ? 500 : 0);
+
+      // Apply dimming via opacity
+      if (dimUnselected && selectedPortId && !isSelected) {
+        marker.setOpacity(0.4);
+      } else {
+        marker.setOpacity(1);
+      }
     });
-  }, [mounted, selectedPortId, hoveredPortId]);
+  }, [selectedPortId, hoveredPortId, dimUnselected, ports]);
 
-  // Smooth fly to selected port
-  useEffect(() => {
-    if (!mounted || !mapRef.current || !selectedPortId) return;
-    const selectedPort = ports.find((p) => p.id === selectedPortId);
-    if (selectedPort) {
-      mapRef.current.flyTo([selectedPort.lat, selectedPort.lng], 7, {
-        animate: true,
-        duration: 0.6,
-        easeLinearity: 0.25,
-      });
-    }
-  }, [mounted, selectedPortId, ports]);
-
-  if (!mounted) {
-    return (
-      <div className="nabeeh-map-container nabeeh-map-loading">
-        <div className="nabeeh-map-loader">
-          <div className="nabeeh-map-loader-ring" />
-          <span>جاري تحميل الخريطة...</span>
-        </div>
-      </div>
-    );
-  }
+  // Reset view function
+  const resetView = useCallback(() => {
+    mapRef.current?.flyTo(SA_CENTER, SA_ZOOM, { duration: 0.5 });
+    onPortSelect(null);
+  }, [onPortSelect]);
 
   return (
-    <div className={`nabeeh-map-container ${isTransitioning ? "nabeeh-map-transitioning" : ""}`}>
+    <div className="nabeeh-map-container">
       <div ref={containerRef} className="nabeeh-map-canvas" />
-      {/* Subtle vignette overlay for depth */}
-      <div className="nabeeh-map-vignette" />
+      
+      {/* Map Controls */}
+      <div className="map-controls">
+        <button
+          type="button"
+          className="map-control-btn"
+          onClick={resetView}
+          title="Reset View"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+        </button>
+      </div>
+
+      {isLoading && (
+        <div className="map-loading-overlay">
+          <div className="loading-spinner" />
+        </div>
+      )}
     </div>
   );
-}
-
-/** 
- * Create port marker icon with state-aware styling.
- * Visual hierarchy: Selected > Hovered > Default
- */
-function createPortIcon(
-  L: typeof import("leaflet"),
-  state: { isSelected: boolean; isHovered: boolean }
-): L.DivIcon {
-  const { isSelected, isHovered } = state;
-
-  // Size and styling based on state
-  const size = isSelected ? 20 : isHovered ? 16 : 12;
-  const borderWidth = isSelected ? 3 : 2;
-  const bgColor = isSelected ? "#2053A4" : "#1D3761";
-  const borderColor = isSelected ? "#fff" : isHovered ? "#fff" : "rgba(255,255,255,0.9)";
-  const shadow = isSelected
-    ? "0 0 0 4px rgba(32, 83, 164, 0.25), 0 2px 8px rgba(0,0,0,0.3)"
-    : isHovered
-    ? "0 0 0 3px rgba(29, 55, 97, 0.2), 0 2px 6px rgba(0,0,0,0.25)"
-    : "0 1px 4px rgba(0,0,0,0.2)";
-  const transform = isHovered && !isSelected ? "scale(1.1)" : "scale(1)";
-
-  const totalSize = size + borderWidth * 2;
-  
-  return L.divIcon({
-    className: "nabeeh-port-marker",
-    html: `
-      <span class="nabeeh-port-marker-inner" style="
-        width: ${size}px;
-        height: ${size}px;
-        border-radius: 50%;
-        background: ${bgColor};
-        border: ${borderWidth}px solid ${borderColor};
-        display: block;
-        box-shadow: ${shadow};
-        transform: ${transform};
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      "></span>
-    `,
-    iconSize: [totalSize, totalSize],
-    iconAnchor: [totalSize / 2, totalSize / 2],
-    tooltipAnchor: [0, -(totalSize / 2)],
-  });
 }

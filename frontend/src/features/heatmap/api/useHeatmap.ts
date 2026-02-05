@@ -1,32 +1,90 @@
-"use client";
-
+/**
+ * React Query hooks for Nabeeh API.
+ */
 import { useQuery } from "@tanstack/react-query";
-import { fetchHeatmap, fetchIncidents, fetchKpis, fetchPorts } from "@/lib/api/client";
+import {
+  fetchSummary,
+  fetchPorts,
+  fetchPortDetails,
+  fetchInspectorDetails,
+  fetchInspectors,
+  fetchHeatmap,
+  type FilterParams,
+  type NationwideSummary,
+  type PortSummary,
+  type PortDetail,
+  type InspectorDetail,
+  type InspectorsListResponse,
+  type HeatmapData,
+} from "@/lib/api/client";
 
-export function usePorts() {
-  return useQuery({ queryKey: ["ports"], queryFn: fetchPorts });
-}
-
-export function useHeatmap(from: string, to: string) {
-  return useQuery({
-    queryKey: ["heatmap", from, to],
-    queryFn: () => fetchHeatmap(from, to),
-    enabled: !!from && !!to,
+/**
+ * Hook for nationwide summary KPIs.
+ */
+export function useSummary(params: FilterParams) {
+  return useQuery<NationwideSummary>({
+    queryKey: ["summary", params],
+    queryFn: () => fetchSummary(params),
+    staleTime: 30_000,
   });
 }
 
-export function useKpis(portId: string | null, from: string, to: string) {
-  return useQuery({
-    queryKey: ["kpis", portId, from, to],
-    queryFn: () => (portId ? fetchKpis(portId, from, to) : Promise.reject(new Error("no port"))),
-    enabled: !!portId && !!from && !!to,
+/**
+ * Hook for ports list with risk metrics.
+ */
+export function usePorts(params: FilterParams) {
+  return useQuery<PortSummary[]>({
+    queryKey: ["ports", params],
+    queryFn: () => fetchPorts(params),
+    staleTime: 30_000,
   });
 }
 
-export function useIncidents(portId: string | null, from: string, to: string, limit = 10) {
-  return useQuery({
-    queryKey: ["incidents", portId, from, to, limit],
-    queryFn: () => (portId ? fetchIncidents(portId, from, to, limit) : Promise.reject(new Error("no port"))),
-    enabled: !!portId && !!from && !!to,
+/**
+ * Hook for port details.
+ */
+export function usePortDetails(portId: string | null, params: FilterParams) {
+  return useQuery<PortDetail>({
+    queryKey: ["portDetails", portId, params],
+    queryFn: () => fetchPortDetails(portId!, params),
+    enabled: !!portId,
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Hook for inspector details.
+ */
+export function useInspectorDetails(
+  inspectorId: string | null,
+  params: FilterParams
+) {
+  return useQuery<InspectorDetail>({
+    queryKey: ["inspectorDetails", inspectorId, params],
+    queryFn: () => fetchInspectorDetails(inspectorId!, params),
+    enabled: !!inspectorId,
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Hook for inspectors list.
+ */
+export function useInspectors(params: FilterParams & { limit?: number }) {
+  return useQuery<InspectorsListResponse>({
+    queryKey: ["inspectors", params],
+    queryFn: () => fetchInspectors(params),
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Hook for heatmap data.
+ */
+export function useHeatmap(params: FilterParams) {
+  return useQuery<HeatmapData>({
+    queryKey: ["heatmap", params],
+    queryFn: () => fetchHeatmap(params),
+    staleTime: 30_000,
   });
 }
