@@ -19,7 +19,18 @@ export const en = {
 
   // KPI Labels with clear descriptions
   totalRiskScore: "Risk Index",
-  totalRiskScoreDesc: "A number reflecting the overall risk level. Higher numbers indicate greater risk. Calculated based on the count, type, and severity of violations.",
+  totalRiskScoreDesc: `How is it calculated? Each violation has points by type:
+• Physical Assault = 5 pts
+• Verbal Abuse = 4 pts
+• Camera Blocking/Tampering = 3 pts
+• Smoking/Shouting/Camera Stability = 2 pts
+
+Then multiplied by severity:
+• High ×1.0 | Medium ×0.6 | Low ×0.3
+
+Example: Assault (5) + High severity (×1) = 5 pts
++ Smoking (2) + Medium severity (×0.6) = 1.2 pts
+= Total: 6.2 points`,
   
   totalIncidents: "Recorded Violations",
   totalIncidentsDesc: "Total number of violations detected and recorded during the selected period. Includes all violation types and severity levels.",

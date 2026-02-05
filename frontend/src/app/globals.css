@@ -203,13 +203,13 @@ body {
   position: absolute;
   bottom: calc(100% + 12px);
   right: 0;
-  width: 280px;
-  padding: 14px 16px;
+  width: 320px;
+  padding: 16px 18px;
   background: var(--color-navy);
   color: #fff;
   font-size: 13px;
   font-weight: 400;
-  line-height: 1.6;
+  line-height: 1.7;
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(29, 55, 97, 0.3);
   opacity: 0;
@@ -218,6 +218,7 @@ body {
   transition: all 0.2s ease;
   z-index: 1000;
   text-align: start;
+  white-space: pre-line;
 }
 
 .kpi-tooltip::after {
