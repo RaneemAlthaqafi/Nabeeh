@@ -1,86 +1,92 @@
 /**
  * Arabic translations (Primary language - Formal/Fusha)
+ * ترجمات عربية فصحى واضحة وبليغة
  */
 export const ar = {
   // App
   appTitle: "نظام تنبيه ورصد لمخاطر الامتثال عبر المنافذ",
-  appSubtitle: "خريطة مخاطر المنافذ",
+  appSubtitle: "لوحة رصد المخاطر",
   langAr: "العربية",
   langEn: "English",
 
   // Navigation
-  nationwide: "على مستوى المملكة",
-  selectedPort: "المنفذ المحدد",
+  nationwide: "نظرة شاملة على المملكة",
+  selectedPort: "المنفذ المختار",
   
   // Time filters
-  filterLast24h: "آخر ٢٤ ساعة",
-  filterLast7d: "آخر ٧ أيام",
-  filterLast30d: "آخر ٣٠ يوم",
+  filterLast24h: "اليوم",
+  filterLast7d: "الأسبوع",
+  filterLast30d: "الشهر",
 
-  // KPI Labels (Critical - Proper Semantics)
+  // KPI Labels with clear descriptions
   totalRiskScore: "مؤشر الخطورة",
-  totalRiskScoreDesc: "مجموع نقاط المخالفات حسب وزنها",
-  totalIncidents: "عدد المخالفات",
-  totalIncidentsDesc: "إجمالي الحوادث المسجلة",
-  totalInspectorsImpacted: "المفتشون المخالفون",
-  totalInspectorsImpactedDesc: "عدد المفتشين الفريدين",
+  totalRiskScoreDesc: "رقم يعكس حجم المخاطر الإجمالي. كلما ارتفع الرقم، زادت خطورة الوضع. يُحسب بناءً على عدد المخالفات ونوعها وشدتها.",
+  
+  totalIncidents: "المخالفات المرصودة",
+  totalIncidentsDesc: "العدد الكلي للمخالفات التي تم رصدها وتسجيلها خلال الفترة المحددة. تشمل جميع أنواع المخالفات بمختلف درجاتها.",
+  
+  totalInspectorsImpacted: "المفتشون المعنيون",
+  totalInspectorsImpactedDesc: "عدد المفتشين الذين سُجّلت عليهم مخالفة واحدة على الأقل. إذا ارتكب مفتش واحد عدة مخالفات، يُحسب مرة واحدة فقط.",
+  
   totalPortsAffected: "المنافذ المتأثرة",
-  lastIncident: "آخر حادثة",
-  incidentCount: "عدد الحوادث",
+  totalPortsAffectedDesc: "عدد المنافذ الحدودية التي شهدت مخالفات خلال الفترة المحددة.",
+  
+  lastIncident: "آخر مخالفة",
+  incidentCount: "عدد المخالفات",
   inspectorCount: "عدد المفتشين",
-  uniqueInspectors: "المفتشين (فريد)",
+  uniqueInspectors: "مفتشون فريدون",
 
   // Risk levels
-  riskLevel: "مستوى الخطر",
-  riskHigh: "مرتفع",
-  riskMedium: "متوسط",
-  riskLow: "منخفض",
-  HIGH: "مرتفع",
-  MEDIUM: "متوسط",
-  LOW: "منخفض",
+  riskLevel: "درجة الخطورة",
+  riskHigh: "خطورة عالية",
+  riskMedium: "خطورة متوسطة",
+  riskLow: "خطورة منخفضة",
+  HIGH: "عالية",
+  MEDIUM: "متوسطة",
+  LOW: "منخفضة",
 
-  // Violation types (Arabic)
-  violence: "العنف",
-  camera_blocking: "تغطية الكاميرا",
-  camera_misuse: "سوء استخدام الكاميرا",
+  // Violation types (Arabic) - clear and formal
+  violence: "الاعتداء الجسدي",
+  camera_blocking: "حجب الكاميرا",
+  camera_misuse: "العبث بالكاميرا",
   camera_shake: "اهتزاز الكاميرا",
   smoking: "التدخين",
-  shouting: "الصراخ",
-  abusive_language: "ألفاظ نابية",
+  shouting: "رفع الصوت",
+  abusive_language: "الإساءة اللفظية",
 
   // Violation filter labels
   allViolations: "جميع المخالفات",
   filterByViolation: "تصفية حسب نوع المخالفة",
-  filterBySeverity: "تصفية حسب الخطورة",
+  filterBySeverity: "تصفية حسب درجة الخطورة",
 
   // Inspector section
   inspectors: "المفتشون",
-  topInspectors: "أكثر المفتشين حوادث",
-  inspectorDetails: "تفاصيل المفتش",
-  inspectorId: "رمز المفتش",
-  inspectorRiskScore: "درجة خطر المفتش",
-  violationsBreakdown: "توزيع المخالفات",
-  severityBreakdown: "توزيع الخطورة",
-  portsAffected: "المنافذ المتأثرة",
-  inspectorsWithViolation: "عدد المفتشين عليهم مخالفة",
+  topInspectors: "المفتشون الأكثر مخالفات",
+  inspectorDetails: "بيانات المفتش",
+  inspectorId: "الرقم التعريفي",
+  inspectorRiskScore: "مؤشر خطورة المفتش",
+  violationsBreakdown: "توزيع المخالفات حسب النوع",
+  severityBreakdown: "توزيع المخالفات حسب الخطورة",
+  portsAffected: "المنافذ ذات الصلة",
+  inspectorsWithViolation: "مفتشون عليهم مخالفات",
 
   // Port section
   portDetails: "تفاصيل المنفذ",
   portName: "اسم المنفذ",
-  portRiskScore: "درجة خطر المنفذ",
-  selectPort: "اختر منفذاً",
-  noPortSelected: "لم يتم اختيار منفذ",
-  selectPortInstruction: "اضغط على منفذ في الخريطة لعرض التفاصيل",
+  portRiskScore: "مؤشر خطورة المنفذ",
+  selectPort: "اختر منفذاً من الخريطة",
+  noPortSelected: "لم يُختر أي منفذ",
+  selectPortInstruction: "انقر على أي نقطة في الخريطة لعرض تفاصيل المنفذ",
 
   // Incidents
-  recentIncidents: "أحدث الحوادث",
-  latestIncidents: "آخر ١٠ حوادث",
-  noIncidents: "لا توجد حوادث",
-  incidentTimeline: "الجدول الزمني للحوادث",
+  recentIncidents: "آخر المخالفات المسجلة",
+  latestIncidents: "أحدث ١٠ مخالفات",
+  noIncidents: "لا توجد مخالفات مسجلة",
+  incidentTimeline: "السجل الزمني للمخالفات",
 
   // Map controls
-  resetView: "إعادة تعيين العرض",
-  locateSaudiArabia: "الانتقال للمملكة",
+  resetView: "إعادة ضبط الخريطة",
+  locateSaudiArabia: "العودة لنظرة المملكة",
   zoomIn: "تكبير",
   zoomOut: "تصغير",
 
@@ -90,13 +96,13 @@ export const ar = {
   back: "رجوع",
 
   // States
-  loading: "جاري التحميل...",
-  error: "حدث خطأ",
-  noData: "لا توجد بيانات",
+  loading: "جارٍ التحميل...",
+  error: "تعذّر تحميل البيانات",
+  noData: "لا تتوفر بيانات للعرض",
 
   // Trend
   trend: "الاتجاه",
-  increasing: "متزايد",
-  decreasing: "متناقص",
+  increasing: "في ازدياد",
+  decreasing: "في انخفاض",
   stable: "مستقر",
 };

@@ -138,24 +138,96 @@ body {
 
 /* KPI Cards */
 .kpi-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  padding: 8px 16px;
+  padding: 10px 16px;
   background: #f9fafb;
-  border-radius: 8px;
-  min-width: 100px;
+  border-radius: 10px;
+  min-width: 120px;
+  cursor: help;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.kpi-card:hover {
+  background: #fff;
+  border-color: #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .kpi-value {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--color-navy);
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 .kpi-label {
-  font-size: 11px;
+  font-size: 12px;
   color: #6b7280;
+  margin-top: 2px;
+}
+
+/* Help indicator */
+.kpi-help {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #9ca3af;
+  background: #e5e7eb;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.kpi-card:hover .kpi-help {
+  opacity: 1;
+}
+
+/* KPI Tooltip */
+.kpi-tooltip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  padding: 14px 16px;
+  background: var(--color-navy);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(29, 55, 97, 0.3);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  text-align: start;
+}
+
+.kpi-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: var(--color-navy);
+}
+
+.kpi-card:hover .kpi-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Filter Chips */

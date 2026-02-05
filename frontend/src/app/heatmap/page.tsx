@@ -85,21 +85,29 @@ export default function HeatmapPage() {
         <div className="flex items-center justify-between gap-6">
           {/* KPI Cards */}
           <div className="flex items-center gap-4">
-            <div className="kpi-card" title={t("totalRiskScoreDesc")}>
+            <div className="kpi-card group" data-tooltip={t("totalRiskScoreDesc")}>
               <span className="kpi-value">{summary?.total_risk_score.toFixed(1) ?? "—"}</span>
               <span className="kpi-label">{t("totalRiskScore")}</span>
+              <span className="kpi-help">؟</span>
+              <div className="kpi-tooltip">{t("totalRiskScoreDesc")}</div>
             </div>
-            <div className="kpi-card" title={t("totalInspectorsImpactedDesc")}>
+            <div className="kpi-card group" data-tooltip={t("totalInspectorsImpactedDesc")}>
               <span className="kpi-value">{summary?.total_inspectors_impacted ?? "—"}</span>
               <span className="kpi-label">{t("totalInspectorsImpacted")}</span>
+              <span className="kpi-help">؟</span>
+              <div className="kpi-tooltip">{t("totalInspectorsImpactedDesc")}</div>
             </div>
-            <div className="kpi-card" title={t("totalIncidentsDesc")}>
+            <div className="kpi-card group" data-tooltip={t("totalIncidentsDesc")}>
               <span className="kpi-value">{summary?.total_incidents ?? "—"}</span>
               <span className="kpi-label">{t("totalIncidents")}</span>
+              <span className="kpi-help">؟</span>
+              <div className="kpi-tooltip">{t("totalIncidentsDesc")}</div>
             </div>
-            <div className="kpi-card">
+            <div className="kpi-card group" data-tooltip={t("totalPortsAffectedDesc")}>
               <span className="kpi-value">{summary?.total_ports_affected ?? "—"}</span>
               <span className="kpi-label">{t("totalPortsAffected")}</span>
+              <span className="kpi-help">؟</span>
+              <div className="kpi-tooltip">{t("totalPortsAffectedDesc")}</div>
             </div>
           </div>
 

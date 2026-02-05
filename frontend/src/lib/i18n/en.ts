@@ -4,83 +4,88 @@
 export const en = {
   // App
   appTitle: "Compliance Risk Alert & Monitoring System",
-  appSubtitle: "Ports Risk Heatmap",
+  appSubtitle: "Risk Monitoring Dashboard",
   langAr: "العربية",
   langEn: "English",
 
   // Navigation
-  nationwide: "Nationwide",
+  nationwide: "Kingdom Overview",
   selectedPort: "Selected Port",
 
   // Time filters
-  filterLast24h: "Last 24h",
-  filterLast7d: "Last 7 days",
-  filterLast30d: "Last 30 days",
+  filterLast24h: "Today",
+  filterLast7d: "This Week",
+  filterLast30d: "This Month",
 
-  // KPI Labels (Critical - Proper Semantics)
+  // KPI Labels with clear descriptions
   totalRiskScore: "Risk Index",
-  totalRiskScoreDesc: "Weighted violation score",
-  totalIncidents: "Violations",
-  totalIncidentsDesc: "Total recorded incidents",
-  totalInspectorsImpacted: "Violating Inspectors",
-  totalInspectorsImpactedDesc: "Unique inspectors count",
-  totalPortsAffected: "Ports Affected",
-  lastIncident: "Last Incident",
-  incidentCount: "Incident Count",
+  totalRiskScoreDesc: "A number reflecting the overall risk level. Higher numbers indicate greater risk. Calculated based on the count, type, and severity of violations.",
+  
+  totalIncidents: "Recorded Violations",
+  totalIncidentsDesc: "Total number of violations detected and recorded during the selected period. Includes all violation types and severity levels.",
+  
+  totalInspectorsImpacted: "Involved Inspectors",
+  totalInspectorsImpactedDesc: "Number of inspectors with at least one recorded violation. If one inspector has multiple violations, they are counted only once.",
+  
+  totalPortsAffected: "Affected Ports",
+  totalPortsAffectedDesc: "Number of border ports that witnessed violations during the selected period.",
+  
+  lastIncident: "Last Violation",
+  incidentCount: "Violation Count",
   inspectorCount: "Inspector Count",
   uniqueInspectors: "Unique Inspectors",
 
   // Risk levels
   riskLevel: "Risk Level",
-  riskHigh: "High",
-  riskMedium: "Medium",
-  riskLow: "Low",
+  riskHigh: "High Risk",
+  riskMedium: "Medium Risk",
+  riskLow: "Low Risk",
   HIGH: "High",
   MEDIUM: "Medium",
   LOW: "Low",
 
   // Violation types
-  violence: "Violence",
+  violence: "Physical Assault",
   camera_blocking: "Camera Blocking",
-  camera_misuse: "Camera Misuse",
+  camera_misuse: "Camera Tampering",
   camera_shake: "Camera Shake",
   smoking: "Smoking",
-  shouting: "Shouting",
-  abusive_language: "Abusive Language",
+  shouting: "Raised Voice",
+  abusive_language: "Verbal Abuse",
 
   // Violation filter labels
   allViolations: "All Violations",
-  filterByViolation: "Filter by Violation",
+  filterByViolation: "Filter by Violation Type",
   filterBySeverity: "Filter by Severity",
 
   // Inspector section
   inspectors: "Inspectors",
-  topInspectors: "Top Impacted Inspectors",
+  topInspectors: "Top Violating Inspectors",
   inspectorDetails: "Inspector Details",
   inspectorId: "Inspector ID",
   inspectorRiskScore: "Inspector Risk Score",
-  violationsBreakdown: "Violations Breakdown",
-  severityBreakdown: "Severity Breakdown",
-  portsAffected: "Ports Affected",
-  inspectorsWithViolation: "Inspectors with Violation",
+  violationsBreakdown: "Violations by Type",
+  severityBreakdown: "Violations by Severity",
+  portsAffected: "Related Ports",
+  inspectorsWithViolation: "Inspectors with Violations",
 
   // Port section
   portDetails: "Port Details",
   portName: "Port Name",
   portRiskScore: "Port Risk Score",
-  selectPort: "Select a Port",
+  selectPort: "Select a Port from Map",
   noPortSelected: "No Port Selected",
-  selectPortInstruction: "Click on a port marker to view details",
+  selectPortInstruction: "Click on any point on the map to view port details",
 
   // Incidents
-  recentIncidents: "Recent Incidents",
-  latestIncidents: "Latest 10 Incidents",
-  noIncidents: "No incidents",
-  incidentTimeline: "Incident Timeline",
+  recentIncidents: "Recent Violations",
+  latestIncidents: "Latest 10 Violations",
+  noIncidents: "No violations recorded",
+  incidentTimeline: "Violation Timeline",
 
   // Map controls
-  resetView: "Reset View",
-  locateSaudiArabia: "Go to Saudi Arabia",
+  resetView: "Reset Map View",
+  locateSaudiArabia: "Return to Kingdom View",
   zoomIn: "Zoom In",
   zoomOut: "Zoom Out",
 
@@ -91,7 +96,7 @@ export const en = {
 
   // States
   loading: "Loading...",
-  error: "Error occurred",
+  error: "Failed to load data",
   noData: "No data available",
 
   // Trend
