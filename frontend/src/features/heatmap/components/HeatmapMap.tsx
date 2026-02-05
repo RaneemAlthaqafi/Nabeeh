@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import L from "leaflet";
-import "leaflet.heat";
 import { useI18n } from "@/lib/i18n/context";
 import type { PortSummary } from "@/lib/api/client";
 
@@ -34,15 +32,38 @@ export function HeatmapMap({
 }: HeatmapMapProps) {
   const { lang } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const heatLayerRef = useRef<L.HeatLayer | null>(null);
-  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mapRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const heatLayerRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markersRef = useRef<Map<string, any>>(new Map());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const leafletRef = useRef<any>(null);
   const [hoveredPortId, setHoveredPortId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLeafletReady, setIsLeafletReady] = useState(false);
+
+  // Load Leaflet dynamically (client-side only)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const loadLeaflet = async () => {
+      const L = await import("leaflet");
+      await import("leaflet.heat");
+      leafletRef.current = L.default || L;
+      setIsLeafletReady(true);
+    };
+
+    loadLeaflet();
+  }, []);
 
   // Initialize map
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    if (!isLeafletReady || !containerRef.current || mapRef.current) return;
+
+    const L = leafletRef.current;
+    if (!L) return;
 
     const map = L.map(containerRef.current, {
       center,
@@ -75,18 +96,20 @@ export function HeatmapMap({
       map.remove();
       mapRef.current = null;
     };
-  }, [center]);
+  }, [isLeafletReady, center]);
 
   // Update heat layer
   useEffect(() => {
+    const L = leafletRef.current;
     const map = mapRef.current;
-    if (!map) return;
+    if (!L || !map) return;
 
     if (heatLayerRef.current) {
       map.removeLayer(heatLayerRef.current);
     }
 
     if (points.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const heat = (L as any).heatLayer(points, {
         radius: 35,
         blur: 25,
@@ -103,12 +126,13 @@ export function HeatmapMap({
       heat.addTo(map);
       heatLayerRef.current = heat;
     }
-  }, [points]);
+  }, [points, isLeafletReady]);
 
   // Update markers
   useEffect(() => {
+    const L = leafletRef.current;
     const map = mapRef.current;
-    if (!map) return;
+    if (!L || !map) return;
 
     // Clear existing markers
     markersRef.current.forEach((marker) => marker.remove());
@@ -136,7 +160,7 @@ export function HeatmapMap({
         `,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
-        popupAnchor: [0, -(size / 2)], // Popup appears directly above the marker
+        popupAnchor: [0, -(size / 2)],
       });
 
       const marker = L.marker([port.lat, port.lng], {
@@ -154,7 +178,7 @@ export function HeatmapMap({
         closeOnEscapeKey: false,
         closeOnClick: false,
         className: "port-popup",
-        offset: [0, 0], // No extra offset - popupAnchor handles it
+        offset: [0, 0],
       });
 
       // Event handlers
@@ -182,7 +206,7 @@ export function HeatmapMap({
       marker.addTo(map);
       markersRef.current.set(port.id, marker);
     });
-  }, [ports, selectedPortId, hoveredPortId, lang, onPortSelect]);
+  }, [ports, selectedPortId, hoveredPortId, lang, onPortSelect, isLeafletReady]);
 
   // Reset view
   const resetView = useCallback(() => {
