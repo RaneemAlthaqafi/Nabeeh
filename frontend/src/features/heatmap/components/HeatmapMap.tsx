@@ -27,23 +27,24 @@ interface HeatmapMapProps {
   onPortSelect: (portId: string | null) => void;
 }
 
-// Risk colors optimized for both light and dark modes
+// ZATCA Official Risk Colors
+// HIGH: Warm Red #E84A41 | MEDIUM: Orange #FABB33 | LOW: Teal #4FBBBD
 function getRiskColors(level: string, isDark: boolean) {
   const colors = {
     HIGH: {
-      main: "#ef4444",
-      glow: isDark ? "rgba(239, 68, 68, 0.5)" : "rgba(239, 68, 68, 0.35)",
-      ring: isDark ? "rgba(239, 68, 68, 0.8)" : "rgba(239, 68, 68, 0.6)",
+      main: "#E84A41",
+      glow: isDark ? "rgba(232, 74, 65, 0.6)" : "rgba(232, 74, 65, 0.4)",
+      ring: isDark ? "rgba(232, 74, 65, 0.9)" : "rgba(232, 74, 65, 0.7)",
     },
     MEDIUM: {
-      main: "#f59e0b",
-      glow: isDark ? "rgba(245, 158, 11, 0.45)" : "rgba(245, 158, 11, 0.3)",
-      ring: isDark ? "rgba(245, 158, 11, 0.7)" : "rgba(245, 158, 11, 0.5)",
+      main: "#FABB33",
+      glow: isDark ? "rgba(250, 187, 51, 0.55)" : "rgba(250, 187, 51, 0.4)",
+      ring: isDark ? "rgba(250, 187, 51, 0.85)" : "rgba(250, 187, 51, 0.65)",
     },
     LOW: {
-      main: "#10b981",
-      glow: isDark ? "rgba(16, 185, 129, 0.4)" : "rgba(16, 185, 129, 0.25)",
-      ring: isDark ? "rgba(16, 185, 129, 0.6)" : "rgba(16, 185, 129, 0.4)",
+      main: "#4FBBBD",
+      glow: isDark ? "rgba(79, 187, 189, 0.5)" : "rgba(79, 187, 189, 0.35)",
+      ring: isDark ? "rgba(79, 187, 189, 0.75)" : "rgba(79, 187, 189, 0.55)",
     },
   };
   return colors[level as keyof typeof colors] || colors.LOW;
@@ -169,29 +170,30 @@ export function HeatmapMap({
 
     if (points.length > 0) {
       const isDark = mapTheme === "dark";
+      // ZATCA Colors: Teal #4FBBBD → Orange #FABB33 → Warm Red #E84A41
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const heat = (L as any).heatLayer(points, {
-        radius: 50,
-        blur: 35,
+        radius: 55,
+        blur: 30,
         maxZoom: 12,
         max: 1.0,
-        minOpacity: isDark ? 0.5 : 0.4,
+        minOpacity: isDark ? 0.6 : 0.5,
         gradient: isDark ? {
-          0.0: "rgba(16, 185, 129, 0.0)",
-          0.2: "rgba(16, 185, 129, 0.4)",
-          0.4: "rgba(52, 211, 153, 0.55)",
-          0.5: "rgba(251, 191, 36, 0.65)",
-          0.65: "rgba(245, 158, 11, 0.75)",
-          0.8: "rgba(239, 68, 68, 0.85)",
-          1.0: "rgba(220, 38, 38, 1)",
+          0.0: "rgba(79, 187, 189, 0.0)",    // Teal transparent
+          0.15: "rgba(79, 187, 189, 0.5)",   // Teal
+          0.35: "rgba(79, 187, 189, 0.7)",   // Teal stronger
+          0.5: "rgba(250, 187, 51, 0.75)",   // Orange
+          0.65: "rgba(250, 187, 51, 0.85)",  // Orange stronger
+          0.8: "rgba(232, 74, 65, 0.9)",     // Warm Red
+          1.0: "rgba(232, 74, 65, 1)",       // Warm Red full
         } : {
-          0.0: "rgba(16, 185, 129, 0.0)",
-          0.2: "rgba(16, 185, 129, 0.3)",
-          0.4: "rgba(52, 211, 153, 0.45)",
-          0.5: "rgba(251, 191, 36, 0.55)",
-          0.65: "rgba(245, 158, 11, 0.65)",
-          0.8: "rgba(239, 68, 68, 0.75)",
-          1.0: "rgba(185, 28, 28, 0.9)",
+          0.0: "rgba(79, 187, 189, 0.0)",    // Teal transparent
+          0.15: "rgba(79, 187, 189, 0.4)",   // Teal
+          0.35: "rgba(79, 187, 189, 0.6)",   // Teal stronger
+          0.5: "rgba(250, 187, 51, 0.65)",   // Orange
+          0.65: "rgba(250, 187, 51, 0.75)",  // Orange stronger
+          0.8: "rgba(232, 74, 65, 0.85)",    // Warm Red
+          1.0: "rgba(232, 74, 65, 0.95)",    // Warm Red full
         },
       });
       heat.addTo(map);
@@ -217,9 +219,9 @@ export function HeatmapMap({
       const isHovered = port.id === hoveredPortId;
       const colors = getRiskColors(port.risk_level, isDark);
       
-      // Dynamic sizing
-      const baseSize = 14;
-      const size = isSelected ? 24 : isHovered ? 18 : baseSize;
+      // Dynamic sizing - larger for better visibility
+      const baseSize = 18;
+      const size = isSelected ? 28 : isHovered ? 22 : baseSize;
       
       // Risk-based animation intensity
       const riskClass = port.risk_level === "HIGH" 
@@ -242,10 +244,10 @@ export function HeatmapMap({
               <div class="beacon-ring slow" style="--ring-color: ${colors.ring}; --delay: 1.5s;"></div>
             ` : ''}
             
-            <!-- Glow layer -->
+            <!-- Glow layer - enhanced -->
             <div class="marker-glow" style="
               --glow-color: ${colors.glow};
-              --glow-size: ${isSelected ? '35px' : isHovered ? '28px' : '22px'};
+              --glow-size: ${isSelected ? '50px' : isHovered ? '40px' : '32px'};
             "></div>
             
             <!-- Core marker -->

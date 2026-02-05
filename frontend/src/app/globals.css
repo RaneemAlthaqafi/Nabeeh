@@ -533,31 +533,32 @@ body {
   opacity: 0.3;
 }
 
+/* ZATCA Official Colors: HIGH=#E84A41, MEDIUM=#FABB33, LOW=#4FBBBD */
 .legend-marker.high {
-  background: #ef4444;
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+  background: #E84A41;
+  box-shadow: 0 0 14px rgba(232, 74, 65, 0.6);
 }
 
 .legend-marker.high::after {
-  background: radial-gradient(circle, rgba(239, 68, 68, 0.4) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(232, 74, 65, 0.5) 0%, transparent 70%);
 }
 
 .legend-marker.medium {
-  background: #f59e0b;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+  background: #FABB33;
+  box-shadow: 0 0 12px rgba(250, 187, 51, 0.5);
 }
 
 .legend-marker.medium::after {
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.3) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(250, 187, 51, 0.4) 0%, transparent 70%);
 }
 
 .legend-marker.low {
-  background: #10b981;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+  background: #4FBBBD;
+  box-shadow: 0 0 12px rgba(79, 187, 189, 0.5);
 }
 
 .legend-marker.low::after {
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.3) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(79, 187, 189, 0.4) 0%, transparent 70%);
 }
 
 .legend-label {
@@ -587,11 +588,13 @@ body {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+/* ZATCA gradient: Teal → Orange → Warm Red */
 .gradient-bar {
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #10b981 0%, #fbbf24 50%, #ef4444 100%);
-  margin-bottom: 6px;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #4FBBBD 0%, #FABB33 50%, #E84A41 100%);
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .gradient-labels {
@@ -626,64 +629,70 @@ body {
   justify-content: center;
 }
 
-/* Beacon pulse rings */
+/* Beacon pulse rings - high visibility */
 .beacon-ring {
   position: absolute;
-  width: 40px;
-  height: 40px;
-  border: 2px solid var(--ring-color);
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--ring-color);
   border-radius: 50%;
   opacity: 0;
-  animation: beacon-pulse 2.4s ease-out infinite;
+  animation: beacon-pulse 2s ease-out infinite;
   animation-delay: var(--delay, 0s);
 }
 
 .beacon-ring.slow {
-  animation-duration: 3s;
+  animation-duration: 2.8s;
 }
 
 @keyframes beacon-pulse {
   0% {
-    transform: scale(0.5);
-    opacity: 0.9;
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.4;
   }
   100% {
-    transform: scale(2.5);
+    transform: scale(2.2);
     opacity: 0;
   }
 }
 
-/* Marker glow */
+/* Marker glow - enhanced visibility */
 .marker-glow {
   position: absolute;
-  width: var(--glow-size, 22px);
-  height: var(--glow-size, 22px);
+  width: var(--glow-size, 28px);
+  height: var(--glow-size, 28px);
   background: var(--glow-color);
   border-radius: 50%;
-  filter: blur(8px);
+  filter: blur(10px);
   transition: all 0.3s ease;
+  opacity: 0.9;
 }
 
-/* Core marker */
+/* Core marker - ZATCA branded, high visibility */
 .marker-core {
   position: absolute;
-  width: var(--marker-size, 14px);
-  height: var(--marker-size, 14px);
+  width: var(--marker-size, 16px);
+  height: var(--marker-size, 16px);
   background: var(--marker-color);
   border-radius: 50%;
   z-index: 2;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    0 0 0 3px rgba(255, 255, 255, 0.9),
-    0 2px 10px var(--shadow-color),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+    0 0 0 3px #fff,
+    0 0 0 5px var(--shadow-color),
+    0 4px 15px var(--shadow-color),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.15);
 }
 
 [data-theme="dark"] .marker-core {
   box-shadow: 
-    0 0 0 2px rgba(255, 255, 255, 0.3),
-    0 0 20px var(--shadow-color),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+    0 0 0 2px rgba(255, 255, 255, 0.5),
+    0 0 0 4px var(--shadow-color),
+    0 0 25px var(--shadow-color),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.25);
 }
 
 .marker-shine {
