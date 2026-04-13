@@ -187,21 +187,19 @@ export default function HeatmapPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Map Area */}
-        <div className="flex-1 relative">
-          <HeatmapMap
-            points={heatmapPoints}
-            center={MAP_CENTER}
-            ports={ports}
-            selectedPortId={selectedPortId}
-            onPortSelect={handlePortSelect}
-          />
-        </div>
+      <div className="flex-1 relative overflow-hidden">
+        {/* Map Area — always full size; side panel overlays on top */}
+        <HeatmapMap
+          points={heatmapPoints}
+          center={MAP_CENTER}
+          ports={ports}
+          selectedPortId={selectedPortId}
+          onPortSelect={handlePortSelect}
+        />
 
-        {/* Side Panel */}
+        {/* Side Panel — overlaid so the map container never resizes */}
         {selectedPortId && (
-          <div className="w-96 bg-white border-s border-gray-200 overflow-y-auto shadow-lg">
+          <div className="absolute top-0 end-0 h-full w-96 bg-white border-s border-gray-200 overflow-y-auto shadow-lg z-[1000]">
             <PortDetailsPanel
               portDetail={portDetail ?? null}
               isLoading={portDetailLoading}

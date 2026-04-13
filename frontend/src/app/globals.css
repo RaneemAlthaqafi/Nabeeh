@@ -639,6 +639,11 @@ body {
   opacity: 0;
   animation: beacon-pulse 2.4s ease-out infinite;
   animation-delay: var(--delay, 0s);
+  pointer-events: none;
+}
+
+.marker-glow {
+  pointer-events: none;
 }
 
 .beacon-ring.slow {

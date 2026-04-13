@@ -190,6 +190,7 @@ function HeatmapMapInner({
   const hoveredRef = useRef<string | null>(null);
   const lastSelectedRef = useRef<string | null>(null);
   const mapDrivenSelectRef = useRef(false);
+  const mapMovingRef = useRef(false);
 
   const [hoveredPortId, setHoveredPortId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -269,6 +270,16 @@ function HeatmapMapInner({
       .addAttribution(style.attribution);
 
     map.on("zoomend", () => setZoom(map.getZoom()));
+    map.on("movestart zoomstart", () => {
+      mapMovingRef.current = true;
+    });
+    map.on("moveend zoomend", () => {
+      // Small delay: mouseover from cursor-over-marker during animation
+      // can fire just after moveend.
+      setTimeout(() => {
+        mapMovingRef.current = false;
+      }, 100);
+    });
 
     mapRef.current = map;
 
@@ -439,7 +450,14 @@ function HeatmapMapInner({
           className: `premium-popup ${mapTheme}`,
           offset: [0, -8],
         });
-        marker.on("mouseover", () => {
+        // Only open popup on real user pointer hover — never during programmatic
+        // map moves (fitBounds/flyTo can sweep markers under the cursor on load
+        // and open popups one by one, which looked like a bug).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        marker.on("mouseover", (e: any) => {
+          if (mapMovingRef.current) return;
+          // Ignore synthesized mouseovers that lack a real originalEvent.
+          if (!e?.originalEvent) return;
           setHoveredPortId(port.id);
           marker.openPopup();
         });
@@ -500,6 +518,7 @@ function HeatmapMapInner({
     const bounds = L.latLngBounds(ports.map((p) => [p.lat, p.lng]));
     if (bounds.isValid()) {
       map.fitBounds(bounds, { padding: [60, 60], maxZoom: 7, animate: false });
+      map.closePopup();
       didFitRef.current = true;
     }
   }, [ports, isLeafletReady]);
@@ -531,20 +550,10 @@ function HeatmapMapInner({
   const resetView = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-    // Stop any in-flight pan/zoom so the reset animation isn't overridden.
     map.stop();
-    // Clear selection BEFORE starting the reset animation so the
-    // selection-change effect doesn't interfere.
+    map.closePopup();
     onPortSelect(null);
-    // Wait for the side panel to unmount and the flex layout to settle,
-    // then invalidate size and fly — otherwise Leaflet uses the pre-close
-    // container width and the map appears to snap back after the fly.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        map.invalidateSize({ pan: false });
-        map.flyTo(SA_CENTER, SA_ZOOM, { duration: 0.5 });
-      });
-    });
+    map.flyTo(SA_CENTER, SA_ZOOM, { duration: 0.5 });
   }, [onPortSelect]);
 
   const toggleTheme = useCallback(() => {
