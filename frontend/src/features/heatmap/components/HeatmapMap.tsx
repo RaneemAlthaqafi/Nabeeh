@@ -188,6 +188,8 @@ function HeatmapMapInner({
   const portsRef = useRef<PortSummary[]>([]);
   const selectedRef = useRef<string | null>(null);
   const hoveredRef = useRef<string | null>(null);
+  const lastSelectedRef = useRef<string | null>(null);
+  const mapDrivenSelectRef = useRef(false);
 
   const [hoveredPortId, setHoveredPortId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -352,12 +354,15 @@ function HeatmapMapInner({
   // Stable click handler (uses refs so it never goes stale)
   const handleMarkerClick = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (port: PortSummary, marker: any) => {
+    (port: PortSummary, _marker: any) => {
       const map = mapRef.current;
       if (!map) return;
       if (selectedRef.current === port.id) {
         onPortSelect(null);
       } else {
+        // Mark that the upcoming selection change is map-driven so the
+        // selection effect won't start a second flyTo on top of this one.
+        mapDrivenSelectRef.current = true;
         onPortSelect(port.id);
         map.flyTo([port.lat, port.lng], Math.max(map.getZoom(), 8), {
           duration: 0.5,
@@ -485,18 +490,39 @@ function HeatmapMapInner({
     }
   }, [ports, isLeafletReady]);
 
-  // Fly to selected port when selection comes from outside (e.g., side panel)
+  // Fly to selected port only when selection was driven from OUTSIDE the map
+  // (e.g., side panel). Marker clicks already flyTo inside handleMarkerClick,
+  // so we skip to avoid a duplicate flight that causes a "snap back" effect.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !selectedPortId) return;
+    const prev = lastSelectedRef.current;
+    lastSelectedRef.current = selectedPortId;
+
+    if (!map) return;
+    // Marker click already handled the flyTo — consume the flag and bail.
+    if (mapDrivenSelectRef.current) {
+      mapDrivenSelectRef.current = false;
+      return;
+    }
+    // Deselected (including via reset): don't fly anywhere here.
+    if (!selectedPortId) return;
+    // Same id as last render — nothing to do.
+    if (selectedPortId === prev) return;
+
     const port = portsRef.current.find((p) => p.id === selectedPortId);
     if (!port) return;
     map.flyTo([port.lat, port.lng], Math.max(map.getZoom(), 8), { duration: 0.5 });
   }, [selectedPortId]);
 
   const resetView = useCallback(() => {
-    mapRef.current?.flyTo(SA_CENTER, SA_ZOOM, { duration: 0.5 });
+    const map = mapRef.current;
+    if (!map) return;
+    // Stop any in-flight pan/zoom so the reset animation isn't overridden.
+    map.stop();
+    // Clear selection BEFORE starting the reset animation so the
+    // selection-change effect doesn't interfere.
     onPortSelect(null);
+    map.flyTo(SA_CENTER, SA_ZOOM, { duration: 0.5 });
   }, [onPortSelect]);
 
   const toggleTheme = useCallback(() => {
