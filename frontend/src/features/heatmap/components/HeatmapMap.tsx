@@ -277,7 +277,21 @@ function HeatmapMapInner({
       setIsLoading(false);
     }, 150);
 
+    // Keep Leaflet in sync with container size changes (side panel open/close,
+    // window resize, etc.). Without this, flyTo uses a stale size and the map
+    // visibly snaps back after the animation completes.
+    let resizeObserver: ResizeObserver | null = null;
+    const el = containerRef.current;
+    if (el && typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        // pan: false prevents the map from re-centering and causing a jump
+        map.invalidateSize({ pan: false, debounceMoveend: true });
+      });
+      resizeObserver.observe(el);
+    }
+
     return () => {
+      resizeObserver?.disconnect();
       map.remove();
       mapRef.current = null;
       tileLayerRef.current = null;
@@ -522,7 +536,15 @@ function HeatmapMapInner({
     // Clear selection BEFORE starting the reset animation so the
     // selection-change effect doesn't interfere.
     onPortSelect(null);
-    map.flyTo(SA_CENTER, SA_ZOOM, { duration: 0.5 });
+    // Wait for the side panel to unmount and the flex layout to settle,
+    // then invalidate size and fly — otherwise Leaflet uses the pre-close
+    // container width and the map appears to snap back after the fly.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        map.invalidateSize({ pan: false });
+        map.flyTo(SA_CENTER, SA_ZOOM, { duration: 0.5 });
+      });
+    });
   }, [onPortSelect]);
 
   const toggleTheme = useCallback(() => {
