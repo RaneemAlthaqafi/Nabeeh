@@ -1,82 +1,50 @@
-# Nabeeh (نبيه) — Ports Risk Heatmap MVP
+# Nabeeh (نبيه) — Ports Risk Heatmap
 
-**Nabeeh** is a **Risk Awareness & Decision Support System** that visualizes behavioral and compliance violations detected from bodycams across Saudi border ports. It is aligned with ZATCA (Zakat, Tax and Customs Authority) context and is intended for senior stakeholders. This is **not** a media viewer; it is a **decision dashboard**.
+Risk awareness and decision support dashboard for visualizing behavioral and compliance violations detected from bodycams across Saudi border ports (ZATCA context).
 
-## Run with Docker (one command)
+## Quick start (Docker)
 
 ```bash
 docker compose up --build
 ```
 
-Then open **http://localhost:3000/heatmap** in your browser.
+Open **http://localhost:3000/heatmap** — API at http://localhost:8000 (docs `/docs`).
 
-- Backend API: http://localhost:8000  
-- API docs: http://localhost:8000/docs  
+## Run locally
 
-## Run locally (without Docker)
-
-### Backend
-
-**Recommended:** Python 3.11 or 3.12. (Python 3.14 can require Rust to build `pydantic-core` if no wheel is available.)
-
+**Backend** (Python 3.11/3.12 recommended):
 ```bash
 cd backend
 python -m pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
-### Frontend
-
+**Frontend**:
 ```bash
 cd frontend
-npm install
-npm run dev
+npm install && npm run dev
 ```
 
-Open http://localhost:3000/heatmap. Set `NEXT_PUBLIC_API_URL=http://localhost:8000` if the API runs elsewhere (see `.env.example`).
-
-## Coordinates
-
-Port coordinates used in the dashboard are **approximate** and for **visualization only**. They do not represent exact geographic positions for operational use.
+Set `NEXT_PUBLIC_API_URL` if the API runs elsewhere (see `.env.example`).
 
 ## Features
 
-- **Heatmap**: Risk intensity overlay on a map of Saudi border ports.
-- **Filters**: Last 24h, Last 7 days, Last 30 days.
-- **Port details panel**: Risk level badge, KPI counts per violation type, total events, last incident time, and latest 10 incidents when a port is selected.
-- **Arabic-first UI** with clear فصحى labels; **English** translations and **language toggle (AR/EN)** in the top bar. RTL layout when Arabic is active.
+- Risk heatmap over Saudi border ports with 24h / 7d / 30d filters
+- Port details: risk badge, KPIs per violation type, latest incidents
+- Arabic-first UI with AR/EN toggle and RTL support
 
 ## Tech stack
 
-- **Frontend**: Next.js 14 (App Router), TypeScript (strict), Tailwind CSS, TanStack Query, Leaflet + leaflet.heat, Zod. ZATCA brand: SOMAR typography and official color palette.
-- **Backend**: FastAPI, Pydantic, in-memory store (MVP), OpenAPI.
-- **DevOps**: Dockerfile for frontend and backend, docker-compose, CORS for http://localhost:3000.
+- **Frontend**: Next.js 14, TypeScript, Tailwind, TanStack Query, Leaflet + leaflet.heat
+- **Backend**: FastAPI, Pydantic, in-memory store (MVP)
+- **API**: `GET /api/ports`, `/api/heatmap`, `/api/kpis`, `/api/incidents`, `/health`
 
-## Documentation
+Risk logic: `backend/app/services/risk.py`. Port coordinates are approximate (visualization only).
 
-- **Root README**: This file — how to run with Docker, note on approximate coordinates, Nabeeh as Risk Awareness System, and language toggle.
-- **Backend**: Domain logic (risk weights, severity multipliers, thresholds) lives in `backend/app/services/risk.py`. API contract: `GET /api/ports`, `GET /api/heatmap?from=&to=`, `GET /api/kpis?port_id=&from=&to=`, `GET /api/incidents?port_id=&from=&to=&limit=50`, `GET /health`.
+## Assets
 
-No secrets are committed; use `.env.example` as a template and do not commit `.env`.
+Place in `frontend/public/`:
+- `logos/zatca-logo.png`, `logos/nabeeh-logo.png`
+- `fonts/Somar-Regular.woff2`, `Somar-Medium.woff2`, `Somar-Bold.woff2`
 
-## Logos (شعارات)
-
-ضع شعار الهيئة وشعار نبيه في المجلد `frontend/public/logos/`:
-
-| الملف | الوصف |
-|--------|--------|
-| `zatca-logo.png` | شعار هيئة الزكاة والضريبة والجمارك |
-| `nabeeh-logo.png` | شعار نبيه |
-
-المسار الكامل للمجلد: `frontend/public/logos/`  
-إذا لم ترفع الملفات، الهيدر يظهر بدون الشعارين (العنوان فقط).
-
-## Fonts (ZATCA SOMAR)
-
-Place the SOMAR font files in `frontend/public/fonts/`:
-
-- `Somar-Regular.woff2`
-- `Somar-Medium.woff2`
-- `Somar-Bold.woff2`
-
-If these are missing, the app will fall back to the system sans-serif font.
+Missing assets fall back gracefully. Never commit `.env` — use `.env.example`.
