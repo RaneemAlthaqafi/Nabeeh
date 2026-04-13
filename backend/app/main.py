@@ -44,8 +44,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(ports.router)
 app.include_router(analytics.router)
+app.include_router(ports.router)
 
 
 @app.get("/health")

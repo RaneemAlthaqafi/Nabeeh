@@ -699,17 +699,10 @@ body {
   filter: blur(1px);
 }
 
-/* Marker animations */
+/* Marker animations — only HIGH risk pulses, keeps MEDIUM/LOW static for perf */
 .marker-container.risk-high .marker-core {
-  animation: pulse-high 1.5s ease-in-out infinite;
-}
-
-.marker-container.risk-medium .marker-core {
-  animation: pulse-medium 2.5s ease-in-out infinite;
-}
-
-.marker-container.risk-low .marker-core {
-  animation: pulse-low 4s ease-in-out infinite;
+  animation: pulse-high 1.8s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes pulse-high {
@@ -717,14 +710,11 @@ body {
   50% { transform: scale(1.15); }
 }
 
-@keyframes pulse-medium {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
-}
-
-@keyframes pulse-low {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.04); }
+@media (prefers-reduced-motion: reduce) {
+  .marker-container.risk-high .marker-core,
+  .beacon-ring {
+    animation: none;
+  }
 }
 
 /* Selected & Hovered states */
@@ -764,6 +754,7 @@ body {
 
 .leaflet-popup.premium-popup.dark .leaflet-popup-content-wrapper {
   background: rgba(30, 41, 59, 0.98) !important;
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5) !important;

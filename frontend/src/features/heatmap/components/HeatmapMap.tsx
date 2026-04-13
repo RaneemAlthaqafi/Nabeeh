@@ -1,47 +1,34 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { memo, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useI18n } from "@/lib/i18n/context";
 import type { PortSummary } from "@/lib/api/client";
 
 const SA_CENTER: [number, number] = [24.5, 46.5];
 const SA_ZOOM = 6;
 
-// Saudi Arabia border coordinates [lng, lat] - accurate simplified
 const SA_BORDER: [number, number][] = [
-  // Northwest - Jordan border
   [34.95, 29.36], [36.07, 29.19], [37.00, 29.50], [37.50, 29.30],
-  // North - Iraq border  
   [38.79, 29.37], [39.20, 29.37], [40.00, 29.00], [41.19, 28.29],
   [42.07, 28.29], [43.12, 28.00], [44.71, 29.20], [46.55, 29.10],
-  // Northeast - Kuwait border
   [47.43, 28.99], [47.97, 28.99], [48.42, 28.55],
-  // East coast - Persian Gulf
   [48.81, 27.69], [49.30, 27.46], [49.47, 27.11], [50.04, 26.68],
   [50.21, 26.11], [50.55, 25.94], [50.80, 24.75],
-  // Qatar border
   [51.01, 24.29], [51.22, 24.00], [51.39, 24.48], [51.58, 24.25],
-  // UAE border
   [51.59, 22.93], [52.55, 22.93], [55.10, 22.62], [55.67, 22.00],
-  // Oman border
   [55.21, 20.00], [52.78, 19.16], [52.00, 19.00],
-  // Yemen border
   [49.12, 18.62], [48.18, 18.17], [47.47, 17.12], [46.98, 16.95],
   [46.75, 17.28], [45.40, 17.33], [45.22, 17.43], [44.06, 17.41],
   [43.79, 17.32], [43.38, 17.58], [43.12, 17.09], [43.22, 16.67],
   [42.79, 16.38], [42.65, 16.77], [42.35, 17.08], [42.27, 17.47],
-  // Southwest - Red Sea coast
   [41.75, 17.87], [41.22, 18.67], [40.94, 19.49], [40.25, 20.17],
   [39.80, 21.00], [39.19, 21.29], [39.02, 22.00],
-  // West coast - Red Sea
   [38.49, 23.69], [37.92, 24.18], [37.54, 24.29], [37.18, 25.08],
   [36.93, 25.60], [36.64, 25.83], [36.25, 26.57], [35.64, 27.38],
   [35.18, 28.06], [34.62, 28.06],
-  // Close polygon - back to northwest
-  [34.95, 29.36]
+  [34.95, 29.36],
 ];
 
-// Premium map tile providers
 const MAP_STYLES = {
   light: {
     url: "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png",
@@ -53,6 +40,25 @@ const MAP_STYLES = {
   },
 };
 
+const HEAT_GRADIENT_DARK = {
+  0.0: "rgba(79, 187, 189, 0.0)",
+  0.2: "rgba(79, 187, 189, 0.6)",
+  0.4: "rgba(79, 187, 189, 0.85)",
+  0.55: "rgba(250, 187, 51, 0.9)",
+  0.7: "rgba(250, 187, 51, 0.95)",
+  0.85: "rgba(232, 74, 65, 0.95)",
+  1.0: "rgba(232, 74, 65, 1)",
+};
+const HEAT_GRADIENT_LIGHT = {
+  0.0: "rgba(79, 187, 189, 0.0)",
+  0.2: "rgba(79, 187, 189, 0.5)",
+  0.4: "rgba(79, 187, 189, 0.75)",
+  0.55: "rgba(250, 187, 51, 0.8)",
+  0.7: "rgba(250, 187, 51, 0.9)",
+  0.85: "rgba(232, 74, 65, 0.92)",
+  1.0: "rgba(232, 74, 65, 1)",
+};
+
 interface HeatmapMapProps {
   points: [number, number, number][];
   center: [number, number];
@@ -61,8 +67,6 @@ interface HeatmapMapProps {
   onPortSelect: (portId: string | null) => void;
 }
 
-// ZATCA Official Risk Colors
-// HIGH: Warm Red #E84A41 | MEDIUM: Orange #FABB33 | LOW: Teal #4FBBBD
 function getRiskColors(level: string, isDark: boolean) {
   const colors = {
     HIGH: {
@@ -84,7 +88,83 @@ function getRiskColors(level: string, isDark: boolean) {
   return colors[level as keyof typeof colors] || colors.LOW;
 }
 
-export function HeatmapMap({
+// Build marker HTML once per (port, state) — pure function, no side effects.
+function buildMarkerHtml(
+  port: PortSummary,
+  isDark: boolean,
+  isSelected: boolean,
+  isHovered: boolean,
+  mapTheme: "light" | "dark"
+): string {
+  const colors = getRiskColors(port.risk_level, isDark);
+  const baseSize = 8;
+  const size = isSelected ? 14 : isHovered ? 11 : baseSize;
+  const riskClass =
+    port.risk_level === "HIGH"
+      ? "risk-high"
+      : port.risk_level === "MEDIUM"
+      ? "risk-medium"
+      : "risk-low";
+
+  // Single beacon ring for HIGH, none for others — much cheaper than 3 rings.
+  const beacon =
+    port.risk_level === "HIGH"
+      ? `<div class="beacon-ring" style="--ring-color: ${colors.ring}; --delay: 0s;"></div>`
+      : "";
+
+  return `
+    <div class="marker-container ${riskClass} ${isSelected ? "is-selected" : ""} ${
+    isHovered ? "is-hovered" : ""
+  }" data-theme="${mapTheme}">
+      ${beacon}
+      <div class="marker-glow" style="
+        --glow-color: ${colors.glow};
+        --glow-size: ${isSelected ? "22px" : isHovered ? "16px" : "12px"};
+      "></div>
+      <div class="marker-core" style="
+        --marker-size: ${size}px;
+        --marker-color: ${colors.main};
+        --shadow-color: ${colors.glow};
+      ">
+        <div class="marker-shine"></div>
+      </div>
+    </div>
+  `;
+}
+
+function buildPopupHtml(
+  port: PortSummary,
+  isDark: boolean,
+  mapTheme: "light" | "dark",
+  lang: "ar" | "en"
+): string {
+  const colors = getRiskColors(port.risk_level, isDark);
+  const label =
+    port.risk_level === "HIGH"
+      ? lang === "ar"
+        ? "خطورة عالية"
+        : "High Risk"
+      : port.risk_level === "MEDIUM"
+      ? lang === "ar"
+        ? "خطورة متوسطة"
+        : "Medium Risk"
+      : lang === "ar"
+      ? "خطورة منخفضة"
+      : "Low Risk";
+  return `
+    <div class="popup-card" data-theme="${mapTheme}">
+      <div class="popup-header">
+        <span class="popup-indicator" style="background: ${colors.main}; box-shadow: 0 0 8px ${colors.glow};"></span>
+        <span class="popup-name">${lang === "ar" ? port.name_ar : port.name_en}</span>
+      </div>
+      <div class="popup-badge" style="background: ${colors.main}20; color: ${colors.main}; border: 1px solid ${colors.main}40;">
+        ${label}
+      </div>
+    </div>
+  `;
+}
+
+function HeatmapMapInner({
   points,
   center,
   ports,
@@ -105,29 +185,41 @@ export function HeatmapMap({
   const markersRef = useRef<Map<string, any>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const leafletRef = useRef<any>(null);
+  const portsRef = useRef<PortSummary[]>([]);
+  const selectedRef = useRef<string | null>(null);
+  const hoveredRef = useRef<string | null>(null);
+
   const [hoveredPortId, setHoveredPortId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLeafletReady, setIsLeafletReady] = useState(false);
   const [mapTheme, setMapTheme] = useState<"light" | "dark">("light");
+  const [zoom, setZoom] = useState(SA_ZOOM);
 
-  // Load Leaflet dynamically (client-side only)
+  const isDark = mapTheme === "dark";
+
+  // Keep refs in sync so marker event handlers always see latest state without rebuilding.
+  useEffect(() => {
+    selectedRef.current = selectedPortId;
+  }, [selectedPortId]);
+  useEffect(() => {
+    hoveredRef.current = hoveredPortId;
+  }, [hoveredPortId]);
+
+  // Load Leaflet dynamically
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     const loadLeaflet = async () => {
       const L = await import("leaflet");
       await import("leaflet.heat");
       leafletRef.current = L.default || L;
       setIsLeafletReady(true);
     };
-
     loadLeaflet();
   }, []);
 
-  // Initialize map
+  // Initialize map (once)
   useEffect(() => {
     if (!isLeafletReady || !containerRef.current || mapRef.current) return;
-
     const L = leafletRef.current;
     if (!L) return;
 
@@ -141,19 +233,22 @@ export function HeatmapMap({
       zoomAnimation: true,
       fadeAnimation: true,
       markerZoomAnimation: true,
+      preferCanvas: true,
+      worldCopyJump: false,
+      minZoom: 5,
+      maxZoom: 12,
     });
 
-    // Initial tile layer
     const style = MAP_STYLES[mapTheme];
     const tileLayer = L.tileLayer(style.url, {
       maxZoom: 19,
       attribution: style.attribution,
+      updateWhenIdle: true,
+      keepBuffer: 4,
     }).addTo(map);
     tileLayerRef.current = tileLayer;
 
-    // Add Saudi Arabia border
     const borderCoords = SA_BORDER.map(([lng, lat]) => [lat, lng] as [number, number]);
-    const isDark = mapTheme === "dark";
     const borderLayer = L.polygon(borderCoords, {
       color: isDark ? "#4FBBBD" : "#1D3761",
       weight: 2,
@@ -161,17 +256,17 @@ export function HeatmapMap({
       fillColor: isDark ? "#1D3761" : "#4FBBBD",
       fillOpacity: isDark ? 0.08 : 0.05,
       dashArray: "5, 5",
+      interactive: false,
     }).addTo(map);
     borderLayerRef.current = borderLayer;
 
-    // Add zoom control
     L.control.zoom({ position: "bottomright" }).addTo(map);
+    L.control
+      .attribution({ position: "bottomleft", prefix: false })
+      .addTo(map)
+      .addAttribution(style.attribution);
 
-    // Attribution
-    L.control.attribution({
-      position: "bottomleft",
-      prefix: false,
-    }).addTo(map).addAttribution(style.attribution);
+    map.on("zoomend", () => setZoom(map.getZoom()));
 
     mapRef.current = map;
 
@@ -184,28 +279,29 @@ export function HeatmapMap({
       map.remove();
       mapRef.current = null;
       tileLayerRef.current = null;
+      heatLayerRef.current = null;
+      markersRef.current.clear();
     };
-  }, [isLeafletReady, center]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLeafletReady]);
 
-  // Update tile layer and border when theme changes
+  // Theme change: swap tile layer and restyle border
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapRef.current;
     if (!L || !map || !tileLayerRef.current) return;
 
     const style = MAP_STYLES[mapTheme];
-    const isDark = mapTheme === "dark";
-    
-    // Remove old tile layer and add new one
     map.removeLayer(tileLayerRef.current);
     const newTileLayer = L.tileLayer(style.url, {
       maxZoom: 19,
       attribution: style.attribution,
+      updateWhenIdle: true,
+      keepBuffer: 4,
     }).addTo(map);
     tileLayerRef.current = newTileLayer;
     newTileLayer.bringToBack();
 
-    // Update border style
     if (borderLayerRef.current) {
       borderLayerRef.current.setStyle({
         color: isDark ? "#4FBBBD" : "#1D3761",
@@ -214,190 +310,213 @@ export function HeatmapMap({
         fillOpacity: isDark ? 0.08 : 0.05,
       });
     }
-  }, [mapTheme, isLeafletReady]);
+  }, [mapTheme, isLeafletReady, isDark]);
 
-  // Update heat layer
+  // Heat layer: update in place when data changes (no remove/recreate unless first time)
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapRef.current;
     if (!L || !map) return;
 
-    if (heatLayerRef.current) {
-      map.removeLayer(heatLayerRef.current);
-    }
+    // Radius/blur scale with zoom for a cleaner look at different levels
+    const radius = Math.max(22, Math.min(42, 18 + (zoom - 5) * 6));
+    const blur = Math.max(14, Math.min(28, 12 + (zoom - 5) * 3));
 
-    if (points.length > 0) {
-      const isDark = mapTheme === "dark";
-      // ZATCA Colors: Teal #4FBBBD → Orange #FABB33 → Warm Red #E84A41
-      // Smaller radius, less blur for tighter regions
+    if (!heatLayerRef.current) {
+      if (points.length === 0) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const heat = (L as any).heatLayer(points, {
-        radius: 25,
-        blur: 15,
+        radius,
+        blur,
         maxZoom: 14,
         max: 1.0,
         minOpacity: isDark ? 0.65 : 0.55,
-        gradient: isDark ? {
-          0.0: "rgba(79, 187, 189, 0.0)",    // Teal transparent
-          0.2: "rgba(79, 187, 189, 0.6)",    // Teal
-          0.4: "rgba(79, 187, 189, 0.8)",    // Teal stronger
-          0.55: "rgba(250, 187, 51, 0.85)",  // Orange
-          0.7: "rgba(250, 187, 51, 0.9)",    // Orange stronger
-          0.85: "rgba(232, 74, 65, 0.95)",   // Warm Red
-          1.0: "rgba(232, 74, 65, 1)",       // Warm Red full
-        } : {
-          0.0: "rgba(79, 187, 189, 0.0)",    // Teal transparent
-          0.2: "rgba(79, 187, 189, 0.5)",    // Teal
-          0.4: "rgba(79, 187, 189, 0.7)",    // Teal stronger
-          0.55: "rgba(250, 187, 51, 0.75)",  // Orange
-          0.7: "rgba(250, 187, 51, 0.85)",   // Orange stronger
-          0.85: "rgba(232, 74, 65, 0.9)",    // Warm Red
-          1.0: "rgba(232, 74, 65, 1)",       // Warm Red full
-        },
+        gradient: isDark ? HEAT_GRADIENT_DARK : HEAT_GRADIENT_LIGHT,
       });
       heat.addTo(map);
       heatLayerRef.current = heat;
+      return;
     }
-  }, [points, isLeafletReady, mapTheme]);
 
-  // Update markers
+    // Update in place — avoids the flicker / cost of full remove+add
+    const heat = heatLayerRef.current;
+    heat.setOptions({
+      radius,
+      blur,
+      minOpacity: isDark ? 0.65 : 0.55,
+      gradient: isDark ? HEAT_GRADIENT_DARK : HEAT_GRADIENT_LIGHT,
+    });
+    heat.setLatLngs(points);
+  }, [points, isLeafletReady, mapTheme, zoom, isDark]);
+
+  // Stable click handler (uses refs so it never goes stale)
+  const handleMarkerClick = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (port: PortSummary, marker: any) => {
+      const map = mapRef.current;
+      if (!map) return;
+      if (selectedRef.current === port.id) {
+        onPortSelect(null);
+      } else {
+        onPortSelect(port.id);
+        map.flyTo([port.lat, port.lng], Math.max(map.getZoom(), 8), {
+          duration: 0.5,
+          easeLinearity: 0.25,
+        });
+      }
+    },
+    [onPortSelect]
+  );
+
+  // Markers: build once per unique port set, then update icons in place on hover/select.
+  // This avoids the costly rebuild-all-markers-on-every-hover pattern.
+  const portsKey = useMemo(
+    () => ports.map((p) => `${p.id}:${p.risk_level}:${p.lat},${p.lng}`).join("|"),
+    [ports]
+  );
+
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapRef.current;
     if (!L || !map) return;
 
-    const isDark = mapTheme === "dark";
+    portsRef.current = ports;
 
-    // Clear existing markers
-    markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current.clear();
+    // Diff: remove markers for ports that are gone
+    const currentIds = new Set(ports.map((p) => p.id));
+    markersRef.current.forEach((marker, id) => {
+      if (!currentIds.has(id)) {
+        marker.remove();
+        markersRef.current.delete(id);
+      }
+    });
 
-    // Create markers
+    // Add/update markers
     ports.forEach((port) => {
-      const isSelected = port.id === selectedPortId;
-      const isHovered = port.id === hoveredPortId;
-      const colors = getRiskColors(port.risk_level, isDark);
-      
-      // Dynamic sizing - compact
-      const baseSize = 8;
-      const size = isSelected ? 14 : isHovered ? 11 : baseSize;
-      
-      // Risk-based animation intensity
-      const riskClass = port.risk_level === "HIGH" 
-        ? "risk-high" 
-        : port.risk_level === "MEDIUM" 
-          ? "risk-medium" 
-          : "risk-low";
+      const isSelected = port.id === selectedRef.current;
+      const isHovered = port.id === hoveredRef.current;
 
+      const html = buildMarkerHtml(port, isDark, isSelected, isHovered, mapTheme);
       const icon = L.divIcon({
         className: "marker-wrapper",
-        html: `
-          <div class="marker-container ${riskClass} ${isSelected ? 'is-selected' : ''} ${isHovered ? 'is-hovered' : ''}" data-theme="${mapTheme}">
-            <!-- Beacon pulse rings -->
-            ${port.risk_level === "HIGH" ? `
-              <div class="beacon-ring" style="--ring-color: ${colors.ring}; --delay: 0s;"></div>
-              <div class="beacon-ring" style="--ring-color: ${colors.ring}; --delay: 0.8s;"></div>
-              <div class="beacon-ring" style="--ring-color: ${colors.ring}; --delay: 1.6s;"></div>
-            ` : port.risk_level === "MEDIUM" ? `
-              <div class="beacon-ring slow" style="--ring-color: ${colors.ring}; --delay: 0s;"></div>
-              <div class="beacon-ring slow" style="--ring-color: ${colors.ring}; --delay: 1.5s;"></div>
-            ` : ''}
-            
-            <!-- Glow layer -->
-            <div class="marker-glow" style="
-              --glow-color: ${colors.glow};
-              --glow-size: ${isSelected ? '22px' : isHovered ? '16px' : '12px'};
-            "></div>
-            
-            <!-- Core marker -->
-            <div class="marker-core" style="
-              --marker-size: ${size}px;
-              --marker-color: ${colors.main};
-              --shadow-color: ${colors.glow};
-            ">
-              <div class="marker-shine"></div>
-            </div>
-          </div>
-        `,
+        html,
         iconSize: [60, 60],
         iconAnchor: [30, 30],
         popupAnchor: [0, -25],
       });
 
-      const marker = L.marker([port.lat, port.lng], {
-        icon,
-        zIndexOffset: isSelected ? 1000 : isHovered ? 500 : port.risk_level === "HIGH" ? 100 : 0,
-        riseOnHover: true,
-      });
-
-      // Popup content
-      const popupContent = `
-        <div class="popup-card" data-theme="${mapTheme}">
-          <div class="popup-header">
-            <span class="popup-indicator" style="background: ${colors.main}; box-shadow: 0 0 8px ${colors.glow};"></span>
-            <span class="popup-name">${lang === "ar" ? port.name_ar : port.name_en}</span>
-          </div>
-          <div class="popup-badge" style="background: ${colors.main}20; color: ${colors.main}; border: 1px solid ${colors.main}40;">
-            ${port.risk_level === "HIGH" ? (lang === "ar" ? "خطورة عالية" : "High Risk") :
-              port.risk_level === "MEDIUM" ? (lang === "ar" ? "خطورة متوسطة" : "Medium Risk") :
-              (lang === "ar" ? "خطورة منخفضة" : "Low Risk")}
-          </div>
-        </div>
-      `;
-      
-      marker.bindPopup(popupContent, {
-        closeButton: false,
-        autoClose: false,
-        closeOnEscapeKey: false,
-        closeOnClick: false,
-        className: `premium-popup ${mapTheme}`,
-        offset: [0, -8],
-      });
-
-      // Events
-      marker.on("mouseover", () => {
-        setHoveredPortId(port.id);
-        marker.openPopup();
-      });
-
-      marker.on("mouseout", () => {
-        setHoveredPortId(null);
-        marker.closePopup();
-      });
-
-      marker.on("click", () => {
-        if (selectedPortId === port.id) {
-          onPortSelect(null);
-        } else {
-          onPortSelect(port.id);
-          map.flyTo([port.lat, port.lng], Math.max(map.getZoom(), 8), {
-            duration: 0.5,
-            easeLinearity: 0.25,
-          });
+      let marker = markersRef.current.get(port.id);
+      if (!marker) {
+        marker = L.marker([port.lat, port.lng], {
+          icon,
+          zIndexOffset: isSelected ? 1000 : isHovered ? 500 : port.risk_level === "HIGH" ? 100 : 0,
+          riseOnHover: true,
+        });
+        marker.bindPopup(buildPopupHtml(port, isDark, mapTheme, lang), {
+          closeButton: false,
+          autoClose: false,
+          closeOnEscapeKey: false,
+          closeOnClick: false,
+          className: `premium-popup ${mapTheme}`,
+          offset: [0, -8],
+        });
+        marker.on("mouseover", () => {
+          setHoveredPortId(port.id);
+          marker.openPopup();
+        });
+        marker.on("mouseout", () => {
+          setHoveredPortId(null);
+          marker.closePopup();
+        });
+        marker.on("click", () => handleMarkerClick(port, marker));
+        marker.addTo(map);
+        markersRef.current.set(port.id, marker);
+      } else {
+        // Existing marker: update position if it moved, and refresh icon/popup
+        const latLng = marker.getLatLng();
+        if (latLng.lat !== port.lat || latLng.lng !== port.lng) {
+          marker.setLatLng([port.lat, port.lng]);
         }
-      });
-
-      marker.addTo(map);
-      markersRef.current.set(port.id, marker);
+        marker.setIcon(icon);
+        marker.setPopupContent(buildPopupHtml(port, isDark, mapTheme, lang));
+        marker.setZIndexOffset(
+          isSelected ? 1000 : isHovered ? 500 : port.risk_level === "HIGH" ? 100 : 0
+        );
+      }
     });
-  }, [ports, selectedPortId, hoveredPortId, lang, onPortSelect, isLeafletReady, mapTheme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [portsKey, isLeafletReady, mapTheme, lang, isDark, handleMarkerClick]);
 
-  // Reset view
+  // Hover/select-only updates: swap only the affected marker icons, not all of them.
+  useEffect(() => {
+    const L = leafletRef.current;
+    if (!L) return;
+    portsRef.current.forEach((port) => {
+      const marker = markersRef.current.get(port.id);
+      if (!marker) return;
+      const isSelected = port.id === selectedPortId;
+      const isHovered = port.id === hoveredPortId;
+      const html = buildMarkerHtml(port, isDark, isSelected, isHovered, mapTheme);
+      marker.setIcon(
+        L.divIcon({
+          className: "marker-wrapper",
+          html,
+          iconSize: [60, 60],
+          iconAnchor: [30, 30],
+          popupAnchor: [0, -25],
+        })
+      );
+      marker.setZIndexOffset(
+        isSelected ? 1000 : isHovered ? 500 : port.risk_level === "HIGH" ? 100 : 0
+      );
+    });
+  }, [selectedPortId, hoveredPortId, isDark, mapTheme]);
+
+  // Auto-fit bounds when ports change materially (first load / filter that drops ports)
+  const didFitRef = useRef(false);
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapRef.current;
+    if (!L || !map || ports.length === 0 || didFitRef.current) return;
+    const bounds = L.latLngBounds(ports.map((p) => [p.lat, p.lng]));
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 7, animate: false });
+      didFitRef.current = true;
+    }
+  }, [ports, isLeafletReady]);
+
+  // Fly to selected port when selection comes from outside (e.g., side panel)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedPortId) return;
+    const port = portsRef.current.find((p) => p.id === selectedPortId);
+    if (!port) return;
+    map.flyTo([port.lat, port.lng], Math.max(map.getZoom(), 8), { duration: 0.5 });
+  }, [selectedPortId]);
+
   const resetView = useCallback(() => {
     mapRef.current?.flyTo(SA_CENTER, SA_ZOOM, { duration: 0.5 });
     onPortSelect(null);
   }, [onPortSelect]);
 
-  // Toggle theme
   const toggleTheme = useCallback(() => {
-    setMapTheme(prev => prev === "light" ? "dark" : "light");
+    setMapTheme((prev) => (prev === "light" ? "dark" : "light"));
+  }, []);
+
+  const fitToPorts = useCallback(() => {
+    const L = leafletRef.current;
+    const map = mapRef.current;
+    if (!L || !map || portsRef.current.length === 0) return;
+    const bounds = L.latLngBounds(portsRef.current.map((p) => [p.lat, p.lng]));
+    if (bounds.isValid()) {
+      map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 7, duration: 0.6 });
+    }
   }, []);
 
   return (
     <div className={`heatmap-wrapper ${mapTheme}`}>
       <div ref={containerRef} className="map-container" />
-      
-      {/* Floating Controls */}
+
       <div className="floating-controls top-right">
         <button
           type="button"
@@ -408,6 +527,19 @@ export function HeatmapMap({
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
             <path d="M3 3v5h5" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={fitToPorts}
+          className="map-btn"
+          title={lang === "ar" ? "احتواء المنافذ" : "Fit Ports"}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="4 14 4 20 10 20" />
+            <polyline points="20 10 20 4 14 4" />
+            <line x1="14" y1="10" x2="21" y2="3" />
+            <line x1="3" y1="21" x2="10" y2="14" />
           </svg>
         </button>
         <button
@@ -436,7 +568,6 @@ export function HeatmapMap({
         </button>
       </div>
 
-      {/* Legend */}
       <div className="map-legend-panel">
         <div className="legend-header">{lang === "ar" ? "مستوى الخطورة" : "Risk Level"}</div>
         <div className="legend-items">
@@ -471,7 +602,6 @@ export function HeatmapMap({
         </div>
       </div>
 
-      {/* Loading */}
       {isLoading && (
         <div className="loading-screen">
           <div className="loader">
@@ -485,3 +615,5 @@ export function HeatmapMap({
     </div>
   );
 }
+
+export const HeatmapMap = memo(HeatmapMapInner);
