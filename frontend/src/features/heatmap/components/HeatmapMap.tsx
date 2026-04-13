@@ -196,7 +196,6 @@ function HeatmapMapInner({
   const [isLoading, setIsLoading] = useState(true);
   const [isLeafletReady, setIsLeafletReady] = useState(false);
   const [mapTheme, setMapTheme] = useState<"light" | "dark">("light");
-  const [zoom, setZoom] = useState(SA_ZOOM);
 
   const isDark = mapTheme === "dark";
 
@@ -269,7 +268,6 @@ function HeatmapMapInner({
       .addTo(map)
       .addAttribution(style.attribution);
 
-    map.on("zoomend", () => setZoom(map.getZoom()));
     map.on("movestart zoomstart", () => {
       mapMovingRef.current = true;
     });
@@ -339,25 +337,25 @@ function HeatmapMapInner({
     }
   }, [mapTheme, isLeafletReady, isDark]);
 
-  // Heat layer: update in place when data changes (no remove/recreate unless first time)
+  // Heat layer: create once, then update data only when points change.
+  // IMPORTANT: we don't re-run on zoom/theme inside this effect — leaflet.heat
+  // handles its own reprojection on moveend/zoomend. Mutating it during an
+  // animation causes the canvas to "snap" to an intermediate position, which
+  // was the real reset-button bug.
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapRef.current;
     if (!L || !map) return;
 
-    // Radius/blur scale with zoom for a cleaner look at different levels
-    const radius = Math.max(22, Math.min(42, 18 + (zoom - 5) * 6));
-    const blur = Math.max(14, Math.min(28, 12 + (zoom - 5) * 3));
-
     if (!heatLayerRef.current) {
       if (points.length === 0) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const heat = (L as any).heatLayer(points, {
-        radius,
-        blur,
-        maxZoom: 14,
+        radius: 28,
+        blur: 20,
+        maxZoom: 12,
         max: 1.0,
-        minOpacity: isDark ? 0.65 : 0.55,
+        minOpacity: isDark ? 0.55 : 0.45,
         gradient: isDark ? HEAT_GRADIENT_DARK : HEAT_GRADIENT_LIGHT,
       });
       heat.addTo(map);
@@ -365,16 +363,35 @@ function HeatmapMapInner({
       return;
     }
 
-    // Update in place — avoids the flicker / cost of full remove+add
+    heatLayerRef.current.setLatLngs(points);
+  }, [points, isLeafletReady, isDark]);
+
+  // When the theme changes, update heat gradient/opacity without touching data.
+  useEffect(() => {
     const heat = heatLayerRef.current;
+    if (!heat) return;
     heat.setOptions({
-      radius,
-      blur,
-      minOpacity: isDark ? 0.65 : 0.55,
+      minOpacity: isDark ? 0.55 : 0.45,
       gradient: isDark ? HEAT_GRADIENT_DARK : HEAT_GRADIENT_LIGHT,
     });
-    heat.setLatLngs(points);
-  }, [points, isLeafletReady, mapTheme, zoom, isDark]);
+  }, [isDark]);
+
+  // Safety net: force a redraw after any pan/zoom completes so the heat
+  // canvas is guaranteed to be aligned with the map panes.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const redraw = () => {
+      const heat = heatLayerRef.current;
+      if (heat && typeof heat._redraw === "function") heat._redraw();
+    };
+    map.on("moveend", redraw);
+    map.on("zoomend", redraw);
+    return () => {
+      map.off("moveend", redraw);
+      map.off("zoomend", redraw);
+    };
+  }, [isLeafletReady]);
 
   // Stable click handler (uses refs so it never goes stale)
   const handleMarkerClick = useCallback(
