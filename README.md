@@ -1,4 +1,4 @@
-# Nabeeh (نبيه) — Ports Risk Heatmap
+# Ports Risk Heatmap
 
 Risk awareness and decision support dashboard for visualizing behavioral and compliance violations detected from bodycams across Saudi border ports (ZATCA context).
 
@@ -25,13 +25,10 @@ cd frontend
 npm install && npm run dev
 ```
 
-Set `NEXT_PUBLIC_API_URL` if the API runs elsewhere (see `.env.example`).
-
 ## Features
 
 - Risk heatmap over Saudi border ports with 24h / 7d / 30d filters
 - Port details: risk badge, KPIs per violation type, latest incidents
-- Arabic-first UI with AR/EN toggle and RTL support
 
 ## Tech stack
 
